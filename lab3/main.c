@@ -117,7 +117,7 @@ static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
         /* get data */
         saul_reg_read(dev, &data);
         /*get value*/
-        fmt_u16_dec(value[0], data.val[0]);
+        fmt_s16_dec(value[0], data.val[0]);
 
         if( dev_class == SAUL_ACT_LED_RGB ||
             dev_class == SAUL_SENSE_ACCEL || 
@@ -250,7 +250,7 @@ int init_board_periph_resources(void)
                uri: URI_BASE + device-name
             */
 
-            int uri_len = snprintf(&_resource_uris[i][0], CONFIG_URI_MAX, "%s%s", URI_BASE, device->name);
+            int uri_len = snprintf(&_resource_uris[i][0], CONFIG_URI_MAX, "%s%s_%d", URI_BASE, device->name,i);
             if(uri_len < 0 || uri_len > CONFIG_URI_MAX){
                 printf("URI too long for: %s",device->name);
             }
