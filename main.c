@@ -205,17 +205,17 @@ static ssize_t _sensors_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_
     (void) context;
     char uri[CONFIG_NANOCOAP_URI_MAX];
 
-    size_t resp = 0;
-    char rsp[16];
-    unsigned code = COAP_CODE_EMPTY;
+    // size_t resp = 0;
+    // char rsp[16];
+    // unsigned code = COAP_CODE_EMPTY;
 
-    if (coap_get_uri_path(pdu, (uint8_t *)uri) <= 0) {
-        return coap_reply_simple(pdu, COAP_CODE_INTERNAL_SERVER_ERROR, buf,
+    if (coap_get_uri_path(pkt, (uint8_t *)uri) <= 0) {
+        return coap_reply_simple(pkt, COAP_CODE_INTERNAL_SERVER_ERROR, buf,
                                  len, COAP_FORMAT_TEXT, NULL, 0);
     }
     char *sub_uri = uri + strlen("/riot/sensors/");
-    size_t sub_uri_len = strlen(sub_uri);
-    char *sensor_id = sub_uri[0];
+    // size_t sub_uri_len = strlen(sub_uri);
+    char *sensor_id = (char *)sub_uri;
     char str[80];
 
 
@@ -237,7 +237,7 @@ static ssize_t _sensors_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_
 
     size_t str_len = strlen(str);
 
-    return coap_reply_simple(pdu, COAP_CODE_CONTENT, buf, len, COAP_FORMAT_TEXT,
+    return coap_reply_simple(pkt, COAP_CODE_CONTENT, buf, len, COAP_FORMAT_TEXT,
                              (uint8_t *)str, str_len);
 }
 
