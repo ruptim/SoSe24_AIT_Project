@@ -117,12 +117,21 @@ static ssize_t _pressure_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap
 
     phydat_t data;
     saul_reg_read(saul_reg_find_nth(4), &data);
-    printf("Value: %d",data.val[0]);
+    char str[20];
+
+    sprintf(str, "Val: %hi", *data.val); // todo: correct formatting?
+    /* Output is:
+        Showing hex dump of text/plain;charset=utf-8 payload: Message can not be parsed as UTF-8
+        00000000  56 61 6c 3a 20 30 00 1f  68 cf ff 1f 90 cf ff 1f  |Val: 0..h.......|
+        00000010  00 00 00 00                                       |....|
+        00000014
+     */
+
     /* write the RIOT board name in the response buffer */
-    if (pdu->payload_len >= sizeof(int16_t)) {
+    if (pdu->payload_len >= sizeof(str)) {
 //        memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
-        memcpy(pdu->payload, data.val, sizeof(int16_t));
-        return resp_len + sizeof(int16_t);
+        memcpy(pdu->payload, str, sizeof(str));
+        return resp_len + sizeof(str);
     }
     else {
         puts("gcoap_cli: msg buffer too small");
