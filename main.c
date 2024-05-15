@@ -119,7 +119,7 @@ static ssize_t _pressure_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap
     saul_reg_read(saul_reg_find_nth(4), &data);
     printf("Value: %d",data.val[0]);
     /* write the RIOT board name in the response buffer */
-    if (pdu->payload_len >= sizeof(int16_t) {
+    if (pdu->payload_len >= sizeof(int16_t)) {
 //        memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
         memcpy(pdu->payload, data.val, sizeof(int16_t));
         return resp_len + sizeof(int16_t);
