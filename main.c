@@ -115,14 +115,14 @@ static ssize_t _pressure_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap
     coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
     size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
 
-    phydat_t *data = { 0, UNIT_PA, 1 };
-    saul_reg_read(saul_reg_find_nth(4), data);
-
+    phydat_t data;
+    saul_reg_read(saul_reg_find_nth(4), &data);
+    printf("Value: %d",data.val[0]);
     /* write the RIOT board name in the response buffer */
-    if (pdu->payload_len >= *data->val) {
+    if (pdu->payload_len >= sizeof(int16_t) {
 //        memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
-        memcpy(pdu->payload, *data->val, strlen(RIOT_BOARD));
-        return resp_len + strlen(RIOT_BOARD);
+        memcpy(pdu->payload, data.val, sizeof(int16_t));
+        return resp_len + sizeof(int16_t);
     }
     else {
         puts("gcoap_cli: msg buffer too small");
