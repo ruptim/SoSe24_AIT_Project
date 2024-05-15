@@ -1,3 +1,6 @@
 [submodule "RIOT"]
 	path = RIOT
 	url = https://github.com/RIOT-OS/RIOT
+[submodule "RIOT_AIT"]
+	path = RIOT_AIT
+	url = https://github.com/ruptim/RIOT_AIT.git
