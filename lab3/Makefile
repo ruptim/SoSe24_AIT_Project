@@ -109,3 +109,6 @@ endif
 
 # Set a custom channel if needed
 include $(RIOTMAKE)/default-radio-settings.inc.mk
+
+CFLAGS += "-DCONFIG_IEEE802154_DEFAULT_CHANNEL=24"
+
