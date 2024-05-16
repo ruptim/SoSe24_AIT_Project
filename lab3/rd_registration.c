@@ -36,6 +36,10 @@ void *register_at_resource_directory(void *arg)
             rd_ep.netif = (uint16_t)gnrc_netif_iter(NULL)->pid;
         }
         /* if there are many it's an error */
+        else if ((rd_ep.netif == SOCK_ADDR_ANY_NETIF) &&
+            ipv6_addr_is_multicast((ipv6_addr_t *) &rd_ep.addr.ipv6)){
+            /// todo?
+        }
         else {
             puts("error: must specify an interface for a link local address");
             return (void*) 1; 
@@ -83,5 +87,6 @@ void *register_at_resource_directory(void *arg)
         xtimer_sleep(CONFIG_CORD_UPDATE_INTERVAL);
     }
 
+    puts("Resource registered! Exiting!");
 
 }

@@ -65,6 +65,10 @@ USEMODULE += shell
 USEMODULE += shell_cmds_default
 USEMODULE += ps
 USEMODULE += gcoap
+USEMODULE += cord_ep
+# Run the simple CoRE resource directory
+USEMODULE += cord_epsim
+
 # include and auto-initialize all available sensors
 USEMODULE += saul_default
 USEMODULE += shell_cmds_default
@@ -106,8 +110,17 @@ ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
   endif
 endif
 
+DEFAULT_CHANNEL ?= 24
+
 # Set a custom channel if needed
 include $(RIOTMAKE)/default-radio-settings.inc.mk
 
-CFLAGS += "-DCONFIG_IEEE802154_DEFAULT_CHANNEL=24"
+CFLAGS +="-DCONFIG_IEEE802154_DEFAULT_CHANNEL=24"
+
+RD_ADDR ?= \"[fe80::56:f7d5:c6db:4dd3]\" 
+# RD_ADDR ?= \"[ff02:fe]\" 
+CFLAGS += -DRD_ADDR=$(RD_ADDR)
+
+CFLAGS += "-DCONFIG_CORD_EP=\"RIOT-RASPI-4-NODE\""
+
 
