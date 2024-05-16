@@ -37,6 +37,10 @@
 #include "saul_reg.h"
 #include "phydat.h"
 
+#include "net/ipv6/addr.h"
+
+#include "thread.h"
+
 
 #ifdef MODULE_NETIF
 #include "net/gnrc/pktdump.h"
@@ -46,11 +50,13 @@
 
 #include "coap_server.h"
 #include "coap_client.h"
+#include "rd_registration.h"
 
-#define MAIN_QUEUE_SIZE (4)
+#define MAIN_QUEUE_SIZE (8)
 
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
+char rd_register_thread_stack[THREAD_STACKSIZE_MAIN];
 
 static const shell_command_t shell_commands[] = {
     { "coap", "CoAP client", gcoap_cli_cmd },
@@ -69,17 +75,25 @@ int main(void)
     _listener.link_encoder = gcoap_encode_link;
     _listener.next = NULL;
     _listener.request_matcher = NULL;
-
-
-
     
-
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
     server_init(&_listener);
     (void)puts("CoAP Board Handler!");
 
+    /* register event callback with cord_ep_standalone */
+    // cord_ep_standalone_reg_cb(_on_ep_event);
+    // puts("Client information:");
+    // printf("  ep: %s\n", cord_common_get_ep());
+    // printf("  lt: %is\n", (int)CONFIG_CORD_LT);
+
+    
+    thread_create(rd_register_thread_stack, sizeof(rd_register_thread_stack),
+            THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
+            register_at_resource_directory, NULL, "rcv_thread");
+
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
+    
 
     return 0;
 }
