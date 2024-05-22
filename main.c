@@ -115,7 +115,7 @@ static ssize_t _pressure_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap
     coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
     size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
 
-    phydat_t* data;
+    phydat_t *data = = { 0, UNIT_PA, 1 };
     saul_reg_read(saul_reg_find_nth(4), data);
 
     /* write the RIOT board name in the response buffer */
