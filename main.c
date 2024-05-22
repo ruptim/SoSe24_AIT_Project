@@ -54,10 +54,12 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 //                             size_t maxlen, coap_link_encoder_ctx_t *context);
 static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _pressure_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
+static ssize_t _read_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 
 static const coap_resource_t _resources[] = {
     { "/riot/board/humidity", COAP_GET, _riot_board_handler, NULL },
-    {"/riot/board/pressure", COAP_GET, _pressure_handler, NULL}
+    {"/riot/board/pressure", COAP_GET, _pressure_handler, NULL},
+    {"/riot/board/read", COAP_GET | COAP_MATCH_SUBTREE, _read_handler, NULL}
 };
 
 
@@ -119,6 +121,31 @@ static ssize_t _pressure_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap
     saul_reg_read(saul_reg_find_nth(4), &data);
     printf("Value: %d",data.val[0]);
     /* write the RIOT board name in the response buffer */
+    if (pdu->payload_len >= sizeof(int16_t)) {
+//        memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
+        memcpy(pdu->payload, data.val, sizeof(int16_t));
+        return resp_len + sizeof(int16_t);
+    }
+    else {
+        puts("gcoap_cli: msg buffer too small");
+        return gcoap_response(pdu, buf, len, COAP_CODE_INTERNAL_SERVER_ERROR);
+    }
+}
+
+static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
+    (void)ctx;
+    gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
+    coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
+    size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
+
+    uri[30]
+    coap_get_uri_path(*pdu, uri);
+
+    // TODO use chars after uri to filter integer parameters
+
+
+
+    // TODO update
     if (pdu->payload_len >= sizeof(int16_t)) {
 //        memcpy(pdu->payload, RIOT_BOARD, strlen(RIOT_BOARD));
         memcpy(pdu->payload, data.val, sizeof(int16_t));
