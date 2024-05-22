@@ -53,7 +53,7 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 // static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
 //                             size_t maxlen, coap_link_encoder_ctx_t *context);
 static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
-
+static ssize_t _pressure_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 
 static const coap_resource_t _resources[] = {
     { "/riot/board/humidity", COAP_GET, _riot_board_handler, NULL },
