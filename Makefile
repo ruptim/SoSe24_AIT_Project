@@ -64,6 +64,7 @@ USEMODULE += ps
 USEMODULE += gcoap
 # include and auto-initialize all available sensors
 USEMODULE += saul_default
+USEMODULE += shell_cmds_default
 
 include $(RIOTBASE)/tests/Makefile.boards.netif
 ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
