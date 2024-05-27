@@ -5,7 +5,7 @@ APPLICATION = ait_project
 BOARD ?= native
 
 # This has to be the absolute path to the RIOT base directory:
-RIOTBASE ?= $(CURDIR)/RIOT_AIT/
+RIOTBASE ?= $(CURDIR)/../RIOT_AIT/
 
 #CFLAGS+="-DCONFIG_IEEE802154_DEFAULT_CHANNEL=24"
 #CFLAGS+="-DCONFIG_GNRC_IPV6_NIB_SLAAC=1"
