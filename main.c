@@ -147,11 +147,11 @@ static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
     coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
     size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
 
-    uri[2];
+    uint8_t uri[30];
     coap_get_uri_path(*pdu, uri);
 
     // TODO use chars after uri to filter integer parameters
-    int len = strlen(uri);
+    int len = sizeof(uri);
     if (len >= 1) {
         char last_chars[2]; // To store the last 1 characters plus null terminator
         strncpy(last_chars, uri + len - 1, 1);
