@@ -151,10 +151,10 @@ static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
     coap_get_uri_path(pdu, uri);
 
     // TODO use chars after uri to filter integer parameters
-    size_t len = sizeof(uri);
-    if (len >= 1) {
+    size_t length = sizeof(uri);
+    if (length >= 1) {
         char last_chars[2]; // To store the last 1 characters plus null terminator
-        strncpy(last_chars, uri + len - 1, 1);
+        strncpy(last_chars, uri + length - 1, 1);
         last_chars[1] = '\0'; // Null-terminate the string
     }
 
