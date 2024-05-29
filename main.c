@@ -148,7 +148,7 @@ static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
     size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
 
     uint8_t uri[30];
-    coap_get_uri_path(*pdu, uri);
+    coap_get_uri_path(pdu, uri);
 
     // TODO use chars after uri to filter integer parameters
     int len = sizeof(uri);
