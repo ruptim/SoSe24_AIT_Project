@@ -153,17 +153,17 @@ static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
 
     // TODO use chars after uri to filter integer parameters
     size_t length = strlen(uri_char);
+    char last_chars[2]; // To store the last 1 characters plus null terminator
     if (length >= 1) {
-        char last_chars[2]; // To store the last 1 characters plus null terminator
         strncpy(last_chars, &uri_char[length - 2], 1);
         last_chars[1] = '\0'; // Null-terminate the string
     }
 
 
     // TODO update
-    if (pdu->payload_len >= sizeof(last_chars)) {
-        memcpy(pdu->payload, last_chars, sizeof(last_chars));
-        return resp_len + sizeof(last_chars);
+    if (pdu->payload_len >= strlen(last_chars)) {
+        memcpy(pdu->payload, last_chars, strlen(last_chars));
+        return resp_len + strlen(last_chars);
     }
     else {
         puts("gcoap_cli: msg buffer too small");
