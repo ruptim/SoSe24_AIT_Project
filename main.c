@@ -155,7 +155,7 @@ static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
     size_t length = strlen(uri_char);
     if (length >= 1) {
         char last_chars[2]; // To store the last 1 characters plus null terminator
-        strncpy(last_chars, uri_char*[length - 2], 1);
+        strncpy(last_chars, &uri_char[length - 2], 1);
         last_chars[1] = '\0'; // Null-terminate the string
     }
 
