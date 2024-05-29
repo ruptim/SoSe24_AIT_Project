@@ -69,6 +69,9 @@ USEMODULE += gcoap
 USEMODULE += saul_default
 USEMODULE += shell_cmds_default
 
+USEMODULE += ztimer
+USEMODULE += ztimer_msec
+
 include $(RIOTBASE)/tests/Makefile.boards.netif
 ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
   # Use modules for networking

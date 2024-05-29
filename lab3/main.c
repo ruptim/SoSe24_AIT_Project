@@ -36,10 +36,14 @@
 #include "saul_reg.h"
 #include "phydat.h"
 
+#include "ztimer.h"
+
 #ifdef MODULE_NETIF
 #include "net/gnrc/pktdump.h"
 #include "net/gnrc.h"
 #endif
+
+#define MAX_RESOURCES 20
 
 #define MAIN_QUEUE_SIZE (4)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
@@ -50,8 +54,9 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 
-coap_resource_t *_resources;
-
+// coap_resource_t *_resources;
+coap_resource_t _resources[MAX_RESOURCES];
+gcoap_listener_t _listener;
 // /* Adds link format params to resource list */
 // static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
 //                             size_t maxlen, coap_link_encoder_ctx_t *context) {
@@ -76,13 +81,13 @@ coap_resource_t *_resources;
 static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
 {
 
-    // size_t response_len = eval_device(ctx, pdu);
-    char *dev_name = (char *)ctx->resource->context;
-    saul_reg_t *dev = saul_reg_find_name(dev_name);
+    const int dev_pos = (int) ctx->resource->context;
+    
+    saul_reg_t *dev = saul_reg_find_nth(dev_pos);
 
     /* read coap method type in packet */
     unsigned method_flag = coap_method2flag(coap_get_code_detail(pdu));
-    method_flag = ctx->resource->methods; // just for testing
+    method_flag = 4; // just for testing
 
     if (method_flag == COAP_GET)
     {
@@ -138,7 +143,7 @@ static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
  * Initializes coap resources for every saul device found for the current hardware.
  * The URI of a resource is created from the name of the corresponding device and the prefix URI_BASE.
  */
-coap_resource_t *init_board_periph_resources(void)
+int init_board_periph_resources(void)
 {
     // printf("Seaching devices!");
 
@@ -157,8 +162,10 @@ coap_resource_t *init_board_periph_resources(void)
     }
 
     /* create resource array and fill it with a resource per registered device */
-    coap_resource_t *arrayPtr = malloc(dev_count * sizeof(coap_resource_t));
-    if (dev_count > 0)
+    // coap_resource_t *arrayPtr = malloc(dev_count * sizeof(coap_resource_t));
+
+
+    if (dev_count > 0 && dev_count <= MAX_RESOURCES)
     {
         saul_reg_t *device = saul_reg;
 
@@ -168,7 +175,7 @@ coap_resource_t *init_board_periph_resources(void)
             /*
                uri: URI_BASE + device-name
             */
-            int uriLen = strlen(URI_BASE) + strlen(device->name);
+            int uriLen = strlen(URI_BASE) + strlen(device->name)+1;
             char *uri = malloc(uriLen * sizeof(char));
             sprintf(uri, "%s%s", URI_BASE, device->name);
 
@@ -178,17 +185,25 @@ coap_resource_t *init_board_periph_resources(void)
                class starts with 0b01xxxxxx => actuator
                class starts with 0b10xxxxxx => sensor
             */
-            coap_method_flags_t methode = class == 0b0 ? COAP_PUT : COAP_GET;
+            coap_method_flags_t methode = class == 0b0 ? COAP_GET | COAP_PUT : COAP_GET;
 
-            coap_resource_t res = {uri, methode, _riot_board_handler, (void *)device->name};
-            arrayPtr[i] = res;
+            // coap_resource_t res = {uri, methode, _riot_board_handler, (void *)device->name};
+            _resources[i].path = uri;
+            _resources[i].methods = methode;
+            _resources[i].handler = _riot_board_handler;
+            _resources[i].context = (void *) i;
 
             device = device->next;
             i++;
         }
+    }else if (dev_count <= MAX_RESOURCES){
+        perror("Cant register all devices!");
+        return 0;
     }
 
-    return arrayPtr;
+    return dev_count;
+
+    // return arrayPtr;
 }
 
 void server_init(gcoap_listener_t listener)
@@ -221,7 +236,7 @@ static int hello_world(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    int dev_id = 0;
+    int dev_id = 1;
 
     phydat_t data;
     saul_reg_t *dev = saul_reg_find_nth(dev_id);
@@ -229,37 +244,49 @@ static int hello_world(int argc, char **argv)
 
     const coap_resource_t rs = _resources[dev_id];
     coap_request_ctx_t context = {&rs, NULL, 0};
-    printf("Dev: %s, Class: %d, Method: %d,\n", (char *)rs.context, dev->driver->type, rs.methods);
+    // printf("Dev: %s, Class: %d, Method: %d,\n", (char *)rs.context, dev->driver->type, rs.methods);
 
     coap_pkt_t pdu;
     pdu.payload = (uint8_t *)(rs.methods == 4 ? !(bool)data.val[0] : 1); // if PUT, toggle value
     pdu.payload_len = 1;
     uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
 
+    /* COAP resquest inputs no corret -> expect error for return*/
     _riot_board_handler(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE, &context);
     printf("Payload: %s\n", (char *)pdu.payload);
     return 0;
 }
 
+void timer_callback(void *arg){
+    (void) arg;
+    char*s="";
+    hello_world(0,&s);
 
+    // ztimer_set(ZTIMER_MSEC,&timer,1000);
+    
+}
 
-
+ztimer_t timer;
 int main(void)
 {
-    _resources = init_board_periph_resources();
-    int size = (sizeof((*_resources)) / sizeof((_resources)[0]));
+    int size = init_board_periph_resources();
+    // int size = (sizeof((*_resources)) / sizeof((_resources)[0]));
 
-    gcoap_listener_t _listener = {
-        &_resources[0],
-        size,
-        GCOAP_SOCKET_TYPE_UNDEF,
-        gcoap_encode_link,
-        NULL,
-        NULL};
+    
+    _listener.resources = &_resources[0];
+    _listener.resources_len = size;
+    _listener.tl_type = GCOAP_SOCKET_TYPE_UNDEF;
+    _listener.link_encoder = gcoap_encode_link;
+    _listener.next = NULL;
+    _listener.request_matcher = NULL;
 
     shell_command_t shell_commands[] = {
         {"hello", "hello", hello_world},
         {NULL, NULL, NULL}};
+
+
+    timer.callback=timer_callback;        
+    ztimer_set(ZTIMER_MSEC,&timer,1000);
 
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
     server_init(_listener);
