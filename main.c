@@ -147,7 +147,7 @@ static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
     coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
     size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
 
-    uint8_t uri[30];
+    uint8_t uri[128];
     coap_get_uri_path(pdu, uri);
     char* uri_char = (char *) uri;
 
