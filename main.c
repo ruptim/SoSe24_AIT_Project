@@ -156,10 +156,8 @@ static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
     char last_chars[20]; // To store the last 1 characters plus null terminator
     if (length >= 1) {
         strncpy(last_chars, &uri_char[length - 2], sizeof(char));
-        last_chars[1] = '\0'; // Null-terminate the string
+//        last_chars[1] = '\0'; // Null-terminate the string
     }
-
-    last_chars[0] = 'h';
 
     // TODO update
     if (pdu->payload_len >= strlen(last_chars)) {
