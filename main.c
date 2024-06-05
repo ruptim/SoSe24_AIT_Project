@@ -159,8 +159,8 @@ static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
         last_chars[1] = '\0'; // Null-terminate the string
     }
 
-    last_chars[0] = "h";
-    last_chars[1] = "e";
+    last_chars[0] = 'h';
+    last_chars[1] = 'e';
 
     // TODO update
     if (pdu->payload_len >= strlen(last_chars)) {
