@@ -23,6 +23,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "shell.h"
@@ -49,6 +50,9 @@
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
 #define URI_BASE "/b/"
+#define MAX_PUT_PAYLOAD_LEN 11
+#define MAX_GET_PAYLOAD_LEN 128
+
 
 // --
 
@@ -58,6 +62,31 @@ static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
 coap_resource_t _resources[MAX_RESOURCES];
 char _resource_uris[MAX_RESOURCES][CONFIG_URI_MAX];
 gcoap_listener_t _listener;
+
+
+/**
+ * Extract rgb values froma payload string to an array.
+ * String format: "R,G,B".
+ * Length varies from "0,0,0" up to "255,255,255".
+ */
+int get_rgb_values(short int *states, char* payload){
+    int r = atoi(payload);
+    int r_size = snprintf( NULL, 0, "%d", r ) +1;
+    int g = atoi(&payload[r_size]);
+    int g_size = snprintf( NULL, 0, "%d", g ) +1;
+    int b = atoi(&payload[r_size+g_size]);
+    
+    if (r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255) {
+        states[0] = r;
+        states[1] = g;
+        states[2] = b;
+
+        return 0;
+    }else{
+        return -1;
+    }
+
+}
 
 
 /*
@@ -83,18 +112,23 @@ static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
 
         phydat_t data;
         char unit[10] = "";
-        char value[5] = ""; // Max length of 2^16 is 5 (65536)
-
+        char value[3][5] = {"","",""}; // Max length of 2^16 is 5 (65536)
+        int values_to_send = 1;
         /* get data */
         saul_reg_read(dev, &data);
         /*get value*/
+        fmt_u16_dec(value[0], data.val[0]);
+
         if( dev_class == SAUL_ACT_LED_RGB ||
             dev_class == SAUL_SENSE_ACCEL || 
             dev_class == SAUL_SENSE_COLOR || 
-            dev_class == SAUL_SENSE_MAG   || 
-        )
+            dev_class == SAUL_SENSE_MAG 
+        ){
+            fmt_u16_dec(value[1], data.val[1]);
+            fmt_u16_dec(value[2], data.val[2]);
+            values_to_send = 3;
+        }
 
-        fmt_u16_dec(value, data.val[0]);
 
         /*get unit*/
         phydat_unit_write(unit, sizeof(unit), data.unit);
@@ -104,37 +138,67 @@ static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
         /* build response string
             => value + empty_space + prefix_char/e-xxx + unit
         */
-        char response[10+5+1+5+1];
+        
+        char response[MAX_GET_PAYLOAD_LEN];
+        char* response_ptr = (char*) response;
         int resp_str_len = 0;
-        if(prefix != '\0' && data.scale== 0){
-            resp_str_len = sprintf(response, "%s %c%s", value, prefix, unit);
-        }else if (prefix == '\0' && data.scale != 0){
 
-            resp_str_len = sprintf(response, "%se%d %s", value, data.scale, unit);
+        for(int i = 0; i < values_to_send; i++){
+            int value_len = 0;
+            if(prefix != '\0' && data.scale== 0){
+                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN,"%s %c%s", value[0], prefix, unit);
+                
+            }else if (prefix == '\0' && data.scale != 0){ /* no prefix => scientific notation */
+
+                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%se%d %s", value[0], data.scale, unit);
+            }
+            else{  /* no prefix and no sclaing */
+                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s %s", value[0], unit);
+                
+            }
+            resp_str_len += value_len;
+            response_ptr += value_len;
+            if (values_to_send == 3){
+                int value_len_2 = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, ", ");
+                resp_str_len += value_len_2;
+                response_ptr += value_len_2;
+                
+            }
         }
-        else{
-            resp_str_len = sprintf(response, "%s %s", value, unit);
-            
-        }
-        printf("%d",resp_str_len);
+
 
         memcpy(pdu->payload, response, resp_str_len);
         return resp_len + strlen(response);
     }
     else if (method_flag == COAP_PUT)
     {
-        if (pdu->payload_len != 0)
+        if (pdu->payload_len != 0 && pdu->payload_len != MAX_PUT_PAYLOAD_LEN)
         {   
-            char payload[6] = {'\0'}; // max size 5 => "1,1,1"
+            char payload[MAX_PUT_PAYLOAD_LEN] = {'\0'}; // max size 11 => "255,255,255"
             memcpy(payload, (char *)pdu->payload, pdu->payload_len);
             short int states[3] = {0};
 
             if (pdu->payload_len == 1){
                 int tmp = atoi(payload);                
                 states[0] = tmp;
-            }else{
+            }else if (pdu->payload_len >= 5){
+                
+
                 char* pld = (char*) pdu->payload;
                 (void) pld;
+
+
+                if(get_rgb_values(&states[0],pld) == -1){
+                    return gcoap_response(pdu, buf, len, COAP_CODE_BAD_REQUEST);
+                }
+
+                //// -------------  sscanf results in panic! --------------
+                // if(sscanf(paykd, "%d,%d,%d", &r, &g, &b) != 3){
+                // if(sscanf(pld, "%hd,%hd,%hd", &states[0], &states[1], &states[3]) != 3){
+                //     return gcoap_response(pdu, buf, len, COAP_CODE_BAD_REQUEST);
+                // }
+            }else{
+                return gcoap_response(pdu, buf, len, COAP_CODE_BAD_REQUEST);
             }
 
             phydat_t data = {{*states}, UNIT_NONE, 0};
