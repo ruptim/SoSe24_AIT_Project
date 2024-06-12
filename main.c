@@ -45,6 +45,9 @@
 #define MAIN_QUEUE_SIZE (4)
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
+/* internal value that can be read/written via CoAP */
+static uint8_t internal_value = 0;
+
 
 // --
 
@@ -57,14 +60,15 @@ static ssize_t _pressure_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap
 static ssize_t _read_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _echo_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _value_handler(coap_pkt_t* pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context);
+static ssize_t _sensors_handler(coap_pkt_t* pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context);
 
 static const coap_resource_t _resources[] = {
     { "/riot/board/humidity", COAP_GET, _riot_board_handler, NULL },
     {"/riot/board/pressure", COAP_GET, _pressure_handler, NULL},
     {"/riot/board/read", COAP_GET | COAP_MATCH_SUBTREE, _read_handler, NULL},
-        {"/echo/", COAP_GET | COAP_MATCH_SUBTREE, _echo_handler, NULL}
-        ,
-    {"/riot/value", COAP_GET | COAP_PUT | COAP_POST | COAP_MATCH_SUBTREE, _value_handler, NULL}
+    {"/echo/", COAP_GET | COAP_MATCH_SUBTREE, _echo_handler, NULL},
+    {"/riot/value", COAP_GET | COAP_PUT | COAP_POST | COAP_MATCH_SUBTREE, _value_handler, NULL},
+    {"/riot/sensors", COAP_GET | COAP_PUT | COAP_POST | COAP_MATCH_SUBTREE, _sensors_handler, NULL}
 };
 
 
@@ -161,7 +165,7 @@ static ssize_t _echo_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
                              (uint8_t *)sub_uri, sub_uri_len);
 }
 
-static ssize_t _riot_value_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context)
+static ssize_t _value_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context)
 {
     (void) context;
 
@@ -194,6 +198,47 @@ static ssize_t _riot_value_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, co
 
     return coap_reply_simple(pkt, code, buf, len,
                              COAP_FORMAT_TEXT, (uint8_t*)rsp, p);
+}
+
+static ssize_t _sensors_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context)
+{
+    (void) context;
+    char uri[CONFIG_NANOCOAP_URI_MAX];
+
+    size_t resp = 0;
+    char rsp[16];
+    unsigned code = COAP_CODE_EMPTY;
+
+    if (coap_get_uri_path(pdu, (uint8_t *)uri) <= 0) {
+        return coap_reply_simple(pdu, COAP_CODE_INTERNAL_SERVER_ERROR, buf,
+                                 len, COAP_FORMAT_TEXT, NULL, 0);
+    }
+    char *sub_uri = uri + strlen("/riot/sensors/");
+    size_t sub_uri_len = strlen(sub_uri);
+    char *sensor_id = sub_uri[0];
+    char str[80];
+
+
+
+    /* read coap method type in packet */
+    unsigned method_flag = coap_method2flag(coap_get_code_detail(pkt));
+
+    switch(method_flag) {
+        case COAP_GET:
+            strcpy(str, "GET ");
+            strcat(str, sensor_id);
+            break;
+        case COAP_PUT:
+        case COAP_POST:
+            strcpy(str, "POST ");
+            strcat(str, sensor_id);
+            break;
+    }
+
+    size_t str_len = strlen(str);
+
+    return coap_reply_simple(pdu, COAP_CODE_CONTENT, buf, len, COAP_FORMAT_TEXT,
+                             (uint8_t *)str, str_len);
 }
 
 static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
