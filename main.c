@@ -56,12 +56,15 @@ static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, co
 static ssize_t _pressure_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _read_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _echo_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
+static ssize_t _value_handler(coap_pkt_t* pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context);
 
 static const coap_resource_t _resources[] = {
     { "/riot/board/humidity", COAP_GET, _riot_board_handler, NULL },
     {"/riot/board/pressure", COAP_GET, _pressure_handler, NULL},
     {"/riot/board/read", COAP_GET | COAP_MATCH_SUBTREE, _read_handler, NULL},
         {"/echo/", COAP_GET | COAP_MATCH_SUBTREE, _echo_handler, NULL}
+        ,
+    {"/riot/value", COAP_GET | COAP_PUT | COAP_POST | COAP_MATCH_SUBTREE, _value_handler, NULL}
 };
 
 
@@ -156,6 +159,41 @@ static ssize_t _echo_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_req
     size_t sub_uri_len = strlen(sub_uri);
     return coap_reply_simple(pdu, COAP_CODE_CONTENT, buf, len, COAP_FORMAT_TEXT,
                              (uint8_t *)sub_uri, sub_uri_len);
+}
+
+static ssize_t _riot_value_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context)
+{
+    (void) context;
+
+    ssize_t p = 0;
+    char rsp[16];
+    unsigned code = COAP_CODE_EMPTY;
+
+    /* read coap method type in packet */
+    unsigned method_flag = coap_method2flag(coap_get_code_detail(pkt));
+
+    switch(method_flag) {
+        case COAP_GET:
+            /* write the response buffer with the internal value */
+            p += fmt_u32_dec(rsp, internal_value);
+            code = COAP_CODE_205;
+            break;
+        case COAP_PUT:
+        case COAP_POST:
+            if (pkt->payload_len < 16) {
+                /* convert the payload to an integer and update the internal value */
+                char payload[16] = { 0 };
+                memcpy(payload, (char*)pkt->payload, pkt->payload_len);
+                internal_value = strtol(payload, NULL, 10);
+                code = COAP_CODE_CHANGED;
+            }
+            else {
+                code = COAP_CODE_REQUEST_ENTITY_TOO_LARGE;
+            }
+    }
+
+    return coap_reply_simple(pkt, code, buf, len,
+                             COAP_FORMAT_TEXT, (uint8_t*)rsp, p);
 }
 
 static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
