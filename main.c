@@ -55,11 +55,13 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _pressure_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _read_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
+static ssize_t _echo_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 
 static const coap_resource_t _resources[] = {
     { "/riot/board/humidity", COAP_GET, _riot_board_handler, NULL },
     {"/riot/board/pressure", COAP_GET, _pressure_handler, NULL},
-    {"/riot/board/read", COAP_GET | COAP_MATCH_SUBTREE, _read_handler, NULL}
+    {"/riot/board/read", COAP_GET | COAP_MATCH_SUBTREE, _read_handler, NULL},
+        {"/echo/", COAP_GET | COAP_MATCH_SUBTREE, _echo_handler, NULL}
 };
 
 
@@ -139,6 +141,21 @@ static ssize_t _pressure_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap
         puts("gcoap_cli: msg buffer too small");
         return gcoap_response(pdu, buf, len, COAP_CODE_INTERNAL_SERVER_ERROR);
     }
+}
+
+static ssize_t _echo_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
+{
+    (void)ctx;
+    char uri[CONFIG_NANOCOAP_URI_MAX];
+
+    if (coap_get_uri_path(pdu, (uint8_t *)uri) <= 0) {
+        return coap_reply_simple(pdu, COAP_CODE_INTERNAL_SERVER_ERROR, buf,
+                                 len, COAP_FORMAT_TEXT, NULL, 0);
+    }
+    char *sub_uri = uri + strlen("/echo/");
+    size_t sub_uri_len = strlen(sub_uri);
+    return coap_reply_simple(pdu, COAP_CODE_CONTENT, buf, len, COAP_FORMAT_TEXT,
+                             (uint8_t *)sub_uri, sub_uri_len);
 }
 
 static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
