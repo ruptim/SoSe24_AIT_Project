@@ -57,7 +57,6 @@ static uint8_t internal_value = 0;
 //                             size_t maxlen, coap_link_encoder_ctx_t *context);
 static ssize_t _riot_board_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _pressure_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
-static ssize_t _read_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _echo_handler(coap_pkt_t* pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
 static ssize_t _value_handler(coap_pkt_t* pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context);
 static ssize_t _sensors_handler(coap_pkt_t* pkt, uint8_t *buf, size_t len, coap_request_ctx_t *context);
@@ -65,7 +64,6 @@ static ssize_t _sensors_handler(coap_pkt_t* pkt, uint8_t *buf, size_t len, coap_
 static const coap_resource_t _resources[] = {
     { "/riot/board/humidity", COAP_GET, _riot_board_handler, NULL },
     {"/riot/board/pressure", COAP_GET, _pressure_handler, NULL},
-    {"/riot/board/read", COAP_GET | COAP_MATCH_SUBTREE, _read_handler, NULL},
     {"/echo/", COAP_GET | COAP_MATCH_SUBTREE, _echo_handler, NULL},
     {"/riot/value", COAP_GET | COAP_PUT | COAP_POST | COAP_MATCH_SUBTREE, _value_handler, NULL},
     {"/riot/sensors", COAP_GET | COAP_PUT | COAP_POST | COAP_MATCH_SUBTREE, _sensors_handler, NULL}
@@ -81,25 +79,6 @@ static gcoap_listener_t _listener = {
     NULL,
     NULL
 };
-
-
-// /* Adds link format params to resource list */
-// static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
-//                             size_t maxlen, coap_link_encoder_ctx_t *context) {
-//     ssize_t res = gcoap_encode_link(resource, buf, maxlen, context);
-//     if (res > 0) {
-//         if (_link_params[context->link_pos]
-//                 && (strlen(_link_params[context->link_pos]) < (maxlen - res))) {
-//             if (buf) {
-//                 memcpy(buf+res, _link_params[context->link_pos],
-//                        strlen(_link_params[context->link_pos]));
-//             }
-//             return res + strlen(_link_params[context->link_pos]);
-//         }
-//     }
-
-//     return res;
-// }
 
 
 static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
@@ -205,16 +184,11 @@ static ssize_t _sensors_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_
     (void) context;
     char uri[CONFIG_NANOCOAP_URI_MAX];
 
-    // size_t resp = 0;
-    // char rsp[16];
-    // unsigned code = COAP_CODE_EMPTY;
-
     if (coap_get_uri_path(pkt, (uint8_t *)uri) <= 0) {
         return coap_reply_simple(pkt, COAP_CODE_INTERNAL_SERVER_ERROR, buf,
                                  len, COAP_FORMAT_TEXT, NULL, 0);
     }
     char *sub_uri = uri + strlen("/riot/sensors/");
-    // size_t sub_uri_len = strlen(sub_uri);
     char *sensor_id = (char *)sub_uri;
     char str[80];
 
@@ -225,8 +199,21 @@ static ssize_t _sensors_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_
 
     switch(method_flag) {
         case COAP_GET:
+
             strcpy(str, "GET ");
-            strcat(str, sensor_id);
+
+            switch (sensor_id) {
+                case 10:
+                    phydat_t data;
+                    saul_reg_read(saul_reg_find_nth(4), &data);
+                    strcat(str, sensor_id);
+                    strcat(str, (char *) data.val[0]);
+                default:
+                    strcat(str, "NO SENSOR");
+            }
+
+//            strcpy(str, "GET ");
+//            strcat(str, sensor_id);
             break;
         case COAP_PUT:
         case COAP_POST:
@@ -240,36 +227,6 @@ static ssize_t _sensors_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_
     return coap_reply_simple(pkt, COAP_CODE_CONTENT, buf, len, COAP_FORMAT_TEXT,
                              (uint8_t *)str, str_len);
 }
-
-static ssize_t _read_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx) {
-    (void)ctx;
-    gcoap_resp_init(pdu, buf, len, COAP_CODE_CONTENT);
-    coap_opt_add_format(pdu, COAP_FORMAT_TEXT);
-    size_t resp_len = coap_opt_finish(pdu, COAP_OPT_FINISH_PAYLOAD);
-
-    uint8_t uri[CONFIG_NANOCOAP_URI_MAX];
-    coap_get_uri_path(pdu, &uri[0]);
-    char* uri_char = (char *) uri;
-
-    // TODO use chars after uri to filter integer parameters
-    size_t length = strlen(uri_char);
-    char last_chars[20] = ""; // To store the last 1 characters plus null terminator
-    if (length >= 1) {
-        strncpy(last_chars, uri_char, sizeof(char)*19);
-//        last_chars[1] = '\0'; // Null-terminate the string
-    }
-
-    // TODO update
-    if (pdu->payload_len >= strlen(last_chars)) {
-        memcpy(pdu->payload, last_chars, strlen(last_chars));
-        return resp_len + strlen(last_chars);
-    }
-    else {
-        puts("gcoap_cli: msg buffer too small");
-        return gcoap_response(pdu, buf, len, COAP_CODE_INTERNAL_SERVER_ERROR);
-    }
-}
-
 
 void server_init(void)
 {
