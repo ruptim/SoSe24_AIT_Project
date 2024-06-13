@@ -68,9 +68,8 @@ USEMODULE += gcoap
 # include and auto-initialize all available sensors
 USEMODULE += saul_default
 USEMODULE += shell_cmds_default
-
-USEMODULE += ztimer
-USEMODULE += ztimer_msec
+USEMODULE += uri_parser
+USEMODULE += od
 
 include $(RIOTBASE)/tests/Makefile.boards.netif
 ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
