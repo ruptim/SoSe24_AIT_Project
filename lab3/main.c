@@ -54,14 +54,13 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 #define MAX_GET_PAYLOAD_LEN 128
 
 
-// --
-
-static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
-
-// coap_resource_t *_resources;
 coap_resource_t _resources[MAX_RESOURCES];
 char _resource_uris[MAX_RESOURCES][CONFIG_URI_MAX];
 gcoap_listener_t _listener;
+
+
+static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx);
+
 
 
 /**
@@ -201,9 +200,8 @@ static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
                 return gcoap_response(pdu, buf, len, COAP_CODE_BAD_REQUEST);
             }
 
+            /* write data to register */
             phydat_t data = {{*states}, UNIT_NONE, 0};
-
-
             saul_reg_write(dev, &data);
 
             return gcoap_response(pdu, buf, len, COAP_CODE_CHANGED);
@@ -219,7 +217,7 @@ static ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, co
 
 /*
  * Initializes coap resources for every saul device found for the current hardware.
- * The URI of a resource is created from the name of the corresponding device and the prefix URI_BASE.
+ * The URI of a resource is created from the name of the prefix URI_BASE and the corresponding device name and id.
  */
 int init_board_periph_resources(void)
 {
@@ -247,7 +245,7 @@ int init_board_periph_resources(void)
         while (device)
         {
             /*
-               uri: URI_BASE + device-name
+               uri: URI_BASE + device-name + _id
             */
 
             int uri_len = snprintf(&_resource_uris[i][0], CONFIG_URI_MAX, "%s%s_%d", URI_BASE, device->name,i);
@@ -308,7 +306,6 @@ void server_init(gcoap_listener_t listener)
 int main(void)
 {
     int size = init_board_periph_resources();
-    // int size = (sizeof((*_resources)) / sizeof((_resources)[0]));
 
 
     _listener.resources = &_resources[0];
