@@ -1,6 +1,10 @@
 
 #include "rd_registration.h"
 
+#include "net/gnrc.h"
+#include "net/ipv6.h"
+#include "net/gnrc/ipv6/nib.h"
+
 
 #define BUFSIZE             (64U)
 #define STARTUP_DELAY       (3U)    /* wait 3s before sending first request*/
@@ -12,6 +16,21 @@ static char riot_info[BUFSIZE];
 void *register_at_resource_directory(void *arg)
 {
     (void) arg;
+
+    gnrc_ipv6_nib_init();
+
+    gnrc_ipv6_nib_abr_t entry;
+    void *state = NULL;
+    (void) state;
+
+    printf("NIB!");
+    while (gnrc_ipv6_nib_abr_iter(&state, &entry)) {
+        gnrc_ipv6_nib_abr_print(&entry);
+        printf("Entry %ld \n",	byteorder_ntohl(entry.addr.u32[0]));
+    }
+    printf("NIB! 2");
+
+    // gncr_ipv6_nib
 
     char ep_str[CONFIG_SOCK_URLPATH_MAXLEN];
     uint16_t ep_port;

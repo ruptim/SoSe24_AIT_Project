@@ -117,10 +117,10 @@ include $(RIOTMAKE)/default-radio-settings.inc.mk
 
 CFLAGS +="-DCONFIG_IEEE802154_DEFAULT_CHANNEL=24"
 
-RD_ADDR ?= \"[fe80::56:f7d5:c6db:4dd3]\" 
+RD_ADDR ?= \"[fe80::689b:91d5:ac11:b4a8]\" 
 # RD_ADDR ?= \"[ff02:fe]\" 
 CFLAGS += -DRD_ADDR=$(RD_ADDR)
 
 CFLAGS += "-DCONFIG_CORD_EP=\"RIOT-RASPI-4-NODE\""
-
-
+# CFLAGS += -DCONFIG_GNRC_IPV6_NIB_SLAAC=1
+# CFLAGS += -DCONFIG_GNRC_IPV6_NIB_6LBR=1
