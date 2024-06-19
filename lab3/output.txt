@@ -1,0 +1,73 @@
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/.well-known/core
+application/link-format content was re-formatted
+</b/LED(red)>,
+</b/LED(green)>,
+</b/LED(blue)>,
+</b/Button(SW0)>,
+</b/Button(CS0)>,
+</b/hdc1000>,
+</b/hdc1000>,
+</b/mag3110>
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000
+Network error: [Errno 113] received through errqueue
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000
+Network error: [Errno 113] received through errqueue
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/.well-known/core
+ERROR:coap:Error received and ignored in this codepath: [Errno 113] No route to host
+Network error: [Errno 113] received through errqueue
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/.well-known/core
+ERROR:coap:Error received and ignored in this codepath: [Errno 113] No route to host
+Network error: [Errno 113] received through errqueue
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/.well-known/core
+ERROR:coap:Error received and ignored in this codepath: [Errno 113] No route to host
+Network error: [Errno 113] received through errqueue
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/.well-known/core
+application/link-format content was re-formatted
+</b/LED(red)>,
+</b/LED(green)>,
+</b/LED(blue)>,
+</b/Button(SW0)>,
+</b/Button(CS0)>,
+</b/hdc1000>,
+</b/hdc1000>,
+</b/mag3110>
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000
+61536e-2 °C
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/LED(red) -m PUT --payload 1
+-bash: syntax error near unexpected token `('
+pi@riot-raspi-4:~ $ aiocoap-client "coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/LED(red)" -m PUT --payload 1
+pi@riot-raspi-4:~ $ aiocoap-client "coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/LED(red)" -m PUT --payload 0
+pi@riot-raspi-4:~ $ aiocoap-client "coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/LED(red)" -m PUT --payload 1
+pi@riot-raspi-4:~ $ aiocoap-client "coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/LED(red)" -m PUT --payload 0
+pi@riot-raspi-4:~ $ aiocoap-client "coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/LED(green)" -m PUT --payload 1
+pi@riot-raspi-4:~ $ aiocoap-client "coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/Button(CS0)" -m GET
+1 none
+WARNING:coap:Received Type.ACK from <UDP6EndpointAddress [fe80::aca7:23b2:757a:8c36%lowpan0] (locally fe80::4c67:57a4:502e:dfb%lowpan0)>, but could not match it to a running exchange.
+pi@riot-raspi-4:~ $ aiocoap-client "coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/Button(CS0)" -m GET
+0 none
+pi@riot-raspi-4:~ $ aiocoap-client "coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/mag3110" -m GET
+110 Gs, 110 Gs, 110 Gs,
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000
+61536e-2 °C
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000
+-4000e-2 °C
+WARNING:coap:Received Type.ACK from <UDP6EndpointAddress [fe80::aca7:23b2:757a:8c36%lowpan0] (locally fe80::4c67:57a4:502e:dfb%lowpan0)>, but could not match it to a running exchange.
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000
+4.04 Not Found
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000
+4.04 Not Found
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/.well-known/core
+application/link-format content was re-formatted
+</b/LED(red)_0>,
+</b/LED(green)_1>,
+</b/LED(blue)_2>,
+</b/Button(SW0)_3>,
+</b/Button(CS0)_4>,
+</b/hdc1000_5>,
+</b/hdc1000_6>
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000_5
+-4000e-2 °C
+pi@riot-raspi-4:~ $ aiocoap-client coap://[fe80::aca7:23b2:757a:8c36%lowpan0]/b/hdc1000_6
+9999e-2 %
+pi@riot-raspi-4:~ $ ^C
+pi@riot-raspi-4:~ $
