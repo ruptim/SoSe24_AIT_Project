@@ -6,9 +6,8 @@ import {BuzzerContainer} from "@/app/game/buzzers/buzzer-container";
 export default function DocsPage() {
   return (
     <div>
-      <h1 className={title()}>Game</h1>
         <QuestionContainer></QuestionContainer>
-        <Divider></Divider>
+        <Divider className={"mt-5 mb-5"}></Divider>
         <BuzzerContainer></BuzzerContainer>
     </div>
   );

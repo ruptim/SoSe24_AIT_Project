@@ -7,11 +7,11 @@ type QuestionButtonParams = {
 export function QuestionButton({isSkip}: QuestionButtonParams){
 
     return (
-        <Button color="primary">
+        <Button color="primary" className={"w-full"}>
             {isSkip ? (
-                <span>Next</span>
+                <span>Next &gt;&gt;</span>
             ) : (
-                <span>Previous</span>
+                <span>&lt;&lt; Previous</span>
             )}
         </Button>
     )

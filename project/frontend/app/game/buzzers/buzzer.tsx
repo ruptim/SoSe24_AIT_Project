@@ -1,4 +1,5 @@
 import {Card, CardBody, CardHeader} from "@nextui-org/card";
+import {Chip} from "@nextui-org/chip";
 
 type BuzzerParams = {
     buzzerId: number,
@@ -15,8 +16,8 @@ export function Buzzer({buzzerId, buzzerName, isPressed}:BuzzerParams){
                 <small className="text-default-500">{buzzerName}</small>
             </CardHeader>
             <CardBody>
-                <div>
-                    {isPressed ? (<span>pressed</span>): (<span>not pressed</span>)}
+                <div className={"flex justify-center"}>
+                    {isPressed ? (<Chip color={"success"}>pressed</Chip>): (<Chip color={"default"}>not pressed</Chip>)}
                 </div>
             </CardBody>
         </Card>
