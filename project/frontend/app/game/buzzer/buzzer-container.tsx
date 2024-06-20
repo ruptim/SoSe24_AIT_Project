@@ -1,5 +1,5 @@
-import {Buzzer} from "@/app/game/buzzers/buzzer";
-import {BuzzerResetButton} from "@/app/game/buzzers/buzzer-reset-button";
+import {Buzzer} from "@/app/game/buzzer/buzzer";
+import {BuzzerResetButton} from "@/app/game/buzzer/buzzer-reset-button";
 
 export function BuzzerContainer(){
     return (
