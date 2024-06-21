@@ -59,7 +59,6 @@ else
   endif
 endif
 
-
 # Modules to include:
 USEMODULE += shell
 USEMODULE += shell_cmds_default
@@ -74,6 +73,7 @@ USEMODULE += saul_default
 USEMODULE += shell_cmds_default
 USEMODULE += uri_parser
 USEMODULE += od
+USEMODULE += xtimer
 
 include $(RIOTBASE)/tests/Makefile.boards.netif
 ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
@@ -124,3 +124,4 @@ CFLAGS += -DRD_ADDR=$(RD_ADDR)
 CFLAGS += "-DCONFIG_CORD_EP=\"RIOT-RASPI-4-NODE\""
 CFLAGS += -DCONFIG_GNRC_IPV6_NIB_SLAAC=1
 CFLAGS += -DCONFIG_GNRC_IPV6_NIB_6LBR=1
+CFLAGS += -DREUSE_TAP=1
