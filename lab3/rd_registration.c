@@ -23,12 +23,12 @@ void *register_at_resource_directory(void *arg)
     void *state = NULL;
     (void) state;
 
-    printf("NIB!");
+    printf("NIB!--");
     while (gnrc_ipv6_nib_abr_iter(&state, &entry)) {
         gnrc_ipv6_nib_abr_print(&entry);
         printf("Entry %ld \n",	byteorder_ntohl(entry.addr.u32[0]));
     }
-    printf("NIB! 2");
+    printf("--NIB!");
 
     // gncr_ipv6_nib
 
