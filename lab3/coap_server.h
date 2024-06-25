@@ -25,7 +25,7 @@ int get_rgb_values(short int *states, char* payload);
 
 int init_board_periph_resources(void);
 
-
+void notify_observers(void);
 
 
 /*
