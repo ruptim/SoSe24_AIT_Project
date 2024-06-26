@@ -51,7 +51,7 @@ ssize_t _encode_link(const coap_resource_t *resource, char *buf,
     {
         snprintf(link,MAX_LINK_LENGTH,";G");
     }
-    else if (resource->methods == (COAP_PUT | COAP_GET))
+    else if (resource->methods == (COAP_PUT | COAP_POST | COAP_GET))
     {
         snprintf(link,MAX_LINK_LENGTH,";G|P");
     }
@@ -214,7 +214,7 @@ ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_requ
         DEBUG("Sending response!");
         return resp_len + strlen(response);
     }
-    else if (method_flag == COAP_PUT)
+    else if (method_flag == COAP_PUT || method_flag == COAP_POST)
     {
         if (pdu->payload_len != 0 && pdu->payload_len != MAX_PUT_PAYLOAD_LEN)
         {
@@ -310,7 +310,7 @@ int init_board_periph_resources(void)
                class starts with 0b01xxxxxx => actuator
                class starts with 0b10xxxxxx => sensor
             */
-            coap_method_flags_t methode = class == 0b0 ? COAP_GET | COAP_PUT : COAP_GET;
+            coap_method_flags_t methode = class == 0b0 ? COAP_PUT | COAP_POST | COAP_GET : COAP_GET;
 
             _resources[i].path = &_resource_uris[i][0];
             _resources[i].methods = methode;
