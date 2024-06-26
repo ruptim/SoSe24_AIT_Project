@@ -36,10 +36,41 @@
 #define ENABLE_DEBUG 1
 #include "debug.h"
 
-
 coap_resource_t _resources[MAX_RESOURCES];
 char _resource_uris[MAX_RESOURCES][CONFIG_URI_MAX];
 gcoap_listener_t _listener;
+
+/* Adds link format params to resource list */
+ssize_t _encode_link(const coap_resource_t *resource, char *buf,
+                     size_t maxlen, coap_link_encoder_ctx_t *context)
+{
+    ssize_t res = gcoap_encode_link(resource, buf, maxlen, context);
+
+    char link[MAX_LINK_LENGTH] = "";
+    if (resource->methods == COAP_GET)
+    {
+        snprintf(link,MAX_LINK_LENGTH,";G");
+    }
+    else if (resource->methods == (COAP_PUT | COAP_GET))
+    {
+        snprintf(link,MAX_LINK_LENGTH,";G|P");
+    }
+
+    if (res > 0)
+    {
+        if ((strlen(link) < (maxlen - res)))
+        {
+            if (buf)
+            {
+                memcpy(buf + res, link,
+                       strlen(link));
+            }
+            return res + strlen(link);
+        }
+    }
+
+    return res;
+}
 
 /**
  * Extract rgb values froma payload string to an array.
@@ -93,9 +124,10 @@ ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_requ
         {
             /* important: dev position is equal to resource index
                ONLY if there are no other resources than saul devices */
-            switch (gcoap_obs_init(pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE, &_resources[dev_pos])) {
-                case GCOAP_OBS_INIT_OK:
-                    DEBUG("gcoap_cli: creating /cli/stats notification\n");
+            switch (gcoap_obs_init(pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE, &_resources[dev_pos]))
+            {
+            case GCOAP_OBS_INIT_OK:
+                DEBUG("gcoap_cli: creating /cli/stats notification\n");
 
                 //     break;
                 // case GCOAP_OBS_INIT_UNUSED:
@@ -143,7 +175,8 @@ ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_requ
 
         char response[MAX_GET_PAYLOAD_LEN];
         char *response_ptr = (char *)response;
-        int resp_str_len = 0;
+        int resp_str_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s: ", dev->name);
+        response_ptr += resp_str_len;
 
         for (int i = 0; i < values_to_send; i++)
         {
@@ -171,17 +204,15 @@ ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_requ
             }
         }
 
-     
-
         memcpy(pdu->payload, response, resp_str_len);
-        
-        if (observer_req){
+
+        if (observer_req)
+        {
             DEBUG("Sending notificatoin!");
             return gcoap_obs_send(&buf[0], resp_len + strlen(response), &_resources[dev_pos]);
         }
         DEBUG("Sending response!");
         return resp_len + strlen(response);
-        
     }
     else if (method_flag == COAP_PUT)
     {
@@ -265,15 +296,16 @@ int init_board_periph_resources(void)
             /*
                uri: URI_BASE + device-name + _id
             */
-            
-            int uri_len = snprintf(&_resource_uris[i][0], CONFIG_URI_MAX, "%s%s_%d", URI_BASE, device->name, i);
+
+            // int uri_len = snprintf(&_resource_uris[i][0], CONFIG_URI_MAX, "%s%s_%d", URI_BASE, device->name, i);
+            int uri_len = snprintf(&_resource_uris[i][0], CONFIG_URI_MAX, "%s%d", URI_BASE, i);
             if (uri_len < 0 || uri_len > CONFIG_URI_MAX)
             {
                 printf("URI too long for: %s", device->name);
             }
 
             uint8_t class = device->driver->type >> 7; // get MSB
-            
+
             /*
                class starts with 0b01xxxxxx => actuator
                class starts with 0b10xxxxxx => sensor
