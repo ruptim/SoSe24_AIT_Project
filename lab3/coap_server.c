@@ -33,7 +33,7 @@
 
 #include "coap_server.h"
 
-#define ENABLE_DEBUG 0
+#define ENABLE_DEBUG 1
 #include "debug.h"
 
 
@@ -171,15 +171,15 @@ ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_requ
             }
         }
 
-        if (observer_req)
-        {
-        }
+     
 
         memcpy(pdu->payload, response, resp_str_len);
         
         if (observer_req){
+            DEBUG("Sending notificatoin!");
             return gcoap_obs_send(&buf[0], resp_len + strlen(response), &_resources[dev_pos]);
         }
+        DEBUG("Sending response!");
         return resp_len + strlen(response);
         
     }

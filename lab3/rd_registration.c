@@ -10,6 +10,8 @@
 #define STARTUP_DELAY       (3U)    /* wait 3s before sending first request*/
 
 
+#define ENABLE_DEBUG 1
+
 static char riot_info[BUFSIZE];
 
 
