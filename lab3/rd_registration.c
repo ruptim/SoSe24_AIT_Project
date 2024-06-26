@@ -15,6 +15,7 @@
 static char riot_info[BUFSIZE];
 
 
+
 void *register_at_resource_directory(void *arg)
 {
     (void) arg;
@@ -24,13 +25,21 @@ void *register_at_resource_directory(void *arg)
     gnrc_ipv6_nib_abr_t entry;
     void *state = NULL;
     (void) state;
+    // uint32_t border_router = 0;
 
-    printf("NIB!--");
     while (gnrc_ipv6_nib_abr_iter(&state, &entry)) {
-        gnrc_ipv6_nib_abr_print(&entry);
-        printf("Entry %ld \n",	byteorder_ntohl(entry.addr.u32[0]));
+        // gnrc_ipv6_nib_abr_print(&entry);
+        // printf("Entry %ld \n",	);
+        // border_router = byteorder_ntohl(entry.addr.u32[0]);
+        break;
     }
-    printf("--NIB!");
+
+    char rd_address[IPV6_ADDR_MAX_STR_LEN+3] = "";
+    char addr_str[IPV6_ADDR_MAX_STR_LEN];
+
+    ipv6_addr_to_str(addr_str, &entry.addr, sizeof(addr_str));
+    snprintf(rd_address,IPV6_ADDR_MAX_STR_LEN+3,"[%s]",addr_str);
+    
 
     // gncr_ipv6_nib
 
@@ -44,8 +53,9 @@ void *register_at_resource_directory(void *arg)
     /* parse RD address information */
     sock_udp_ep_t rd_ep;
 
-    if (sock_udp_name2ep(&rd_ep, RD_ADDR) < 0) {
-        puts("error: unable to parse RD address from RD_ADDR variable");
+    
+    if (sock_udp_name2ep(&rd_ep, rd_address) < 0) {
+        printf("error: unable to parse RD address from %s \n",rd_address);
         return (void*) 1; 
     }
 
