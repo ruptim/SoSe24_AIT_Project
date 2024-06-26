@@ -330,13 +330,16 @@ int init_board_periph_resources(void)
     return dev_count;
 }
 
+/*
+    Notify observers for given resource.
+*/
 void notify_observers(void)
 {
     // size_t len;
     uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
     coap_pkt_t pdu;
 
-    // TODO: check which resource is requested -------------
+    // TODO: update observer for resource *x*
 
     /* send Observe notification for /cli/stats */
     switch (gcoap_obs_init(&pdu, &buf[0], CONFIG_GCOAP_PDU_BUF_SIZE,
