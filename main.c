@@ -50,7 +50,8 @@ static uint8_t internal_value = 0;
 
 
 // --
-
+#define MAX_PUT_PAYLOAD_LEN 11
+#define MAX_GET_PAYLOAD_LEN 128
 
 
 // static ssize_t _encode_link(const coap_resource_t *resource, char *buf,
@@ -189,40 +190,103 @@ static ssize_t _sensors_handler(coap_pkt_t *pkt, uint8_t *buf, size_t len, coap_
                                  len, COAP_FORMAT_TEXT, NULL, 0);
     }
     char *sub_uri = uri + strlen("/riot/sensors/");
-    char *sensor_id = (char *)sub_uri;
+    int sensor_id = atoi((char *)sub_uri);
     char str[80];
-
+    (void) str;
 
 
     /* read coap method type in packet */
     unsigned method_flag = coap_method2flag(coap_get_code_detail(pkt));
 
+    phydat_t data;
+    char unit[10] = "";
+    char value[3][5] = {"", "", ""}; // Max length of 2^16 is 5 (65536)
+    int values_to_send = 1;
+    
+    //todo: check if sensor id is between 0 and max device id
+    saul_reg_t *dev  = saul_reg_find_nth(sensor_id);
+    if (dev == NULL){
+        char* error = "No sensor with given ID.";
+        return coap_reply_simple(pkt, COAP_CODE_BAD_REQUEST, buf,
+                                 len, COAP_FORMAT_TEXT, (uint8_t*) error, strlen(error));
+    }
+    int dev_class = dev->driver->type;
+
     switch(method_flag) {
         case COAP_GET:
 
-            strcpy(str, "GET ");
+           
+            /* get data */
+            saul_reg_read(dev, &data);
+            /*get value*/
+            fmt_s16_dec(value[0], data.val[0]);
 
-            switch (sensor_id) {
-                case 10:
-                    phydat_t data;
-                    saul_reg_read(saul_reg_find_nth(4), &data);
-                    strcat(str, sensor_id);
-                    strcat(str, (char *) data.val[0]);
-                default:
-                    strcat(str, "NO SENSOR");
+            if (dev_class == SAUL_ACT_LED_RGB ||
+                dev_class == SAUL_SENSE_ACCEL ||
+                dev_class == SAUL_SENSE_COLOR ||
+                dev_class == SAUL_SENSE_MAG)
+            {
+                fmt_u16_dec(value[1], data.val[1]);
+                fmt_u16_dec(value[2], data.val[2]);
+                values_to_send = 3;
             }
+
+            /*get unit*/
+            phydat_unit_write(unit, sizeof(unit), data.unit);
+
+            /*get scale prefix*/
+            char prefix = phydat_prefix_from_scale(data.scale);
+            /* build response string
+                => value + empty_space + prefix_char/e-xxx + unit
+            */
+
+            char response[MAX_GET_PAYLOAD_LEN];
+            char *response_ptr = (char *)response;
+            int resp_str_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s: ", dev->name);
+            response_ptr += resp_str_len;
+            
+
+            for (int i = 0; i < values_to_send; i++)
+            {
+                int value_len = 0;
+                if (prefix != '\0' && data.scale == 0)
+                {
+                    value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s %c%s", value[0], prefix, unit);
+                }
+                else if (prefix == '\0' && data.scale != 0)
+                { /* no prefix => scientific notation */
+
+                    value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%se%d %s", value[0], data.scale, unit);
+                }
+                else
+                { /* no prefix and no sclaing */
+                    value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s %s", value[0], unit);
+                }
+                resp_str_len += value_len;
+                response_ptr += value_len;
+                if (values_to_send == 3 && i < 2)
+                {
+                    int value_len_2 = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, ", ");
+                    resp_str_len += value_len_2;
+                    response_ptr += value_len_2;
+                }
+            }
+            
+            return coap_reply_simple(pkt, COAP_CODE_CONTENT, buf, len, COAP_FORMAT_TEXT,
+                             (uint8_t *)response, resp_str_len);
 
 //            strcpy(str, "GET ");
 //            strcat(str, sensor_id);
             break;
         case COAP_PUT:
         case COAP_POST:
-            strcpy(str, "POST ");
-            strcat(str, sensor_id);
+            // strcpy(str, "POST ");
+            // strcat(str, sensor_id);
             break;
     }
 
     size_t str_len = strlen(str);
+ 
 
     return coap_reply_simple(pkt, COAP_CODE_CONTENT, buf, len, COAP_FORMAT_TEXT,
                              (uint8_t *)str, str_len);
