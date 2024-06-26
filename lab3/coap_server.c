@@ -265,7 +265,7 @@ int init_board_periph_resources(void)
             /*
                uri: URI_BASE + device-name + _id
             */
-
+            
             int uri_len = snprintf(&_resource_uris[i][0], CONFIG_URI_MAX, "%s%s_%d", URI_BASE, device->name, i);
             if (uri_len < 0 || uri_len > CONFIG_URI_MAX)
             {
@@ -273,7 +273,7 @@ int init_board_periph_resources(void)
             }
 
             uint8_t class = device->driver->type >> 7; // get MSB
-
+            
             /*
                class starts with 0b01xxxxxx => actuator
                class starts with 0b10xxxxxx => sensor

@@ -70,7 +70,7 @@ int main(void)
 
 
     _listener.resources = &_resources[0];
-    _listener.resources_len = size;
+    _listener.resources_len = (size_t) size;
     _listener.tl_type = GCOAP_SOCKET_TYPE_UNDEF;
     _listener.link_encoder = gcoap_encode_link;
     _listener.next = NULL;
