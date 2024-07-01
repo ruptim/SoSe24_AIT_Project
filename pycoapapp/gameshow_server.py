@@ -19,8 +19,19 @@ import aiocoap
 
 import aiocoap.resourcedirectory.client.register  as rd_register
 
+from queue import Queue
 
 import re
+
+
+'''
+        'dev_name':
+        {
+            'time_stamp': ts    
+        }
+'''
+device_status_map = {}
+
 
 class Welcome(resource.Resource):
     representations = {
@@ -79,6 +90,35 @@ class ButtonResource(resource.ObservableResource):
         return aiocoap.Message(payload=payload)
 
 
+class ButtonRegisterResource(resource.Resource):
+
+    def __init__(self):
+        super().__init__()
+
+    def register_device(self, request):
+        payload = request.payload.decode('ascii')        
+        if device_status_map.get(payload):
+            return aiocoap.Message(code=aiocoap.BAD_REQUEST,payload="Name already in use!".encode("ascii"))    
+
+
+        
+        device_status_map[payload] = {
+            'endpoint': request.remote.uri_base,
+            'register_time': datetime.now(),
+            'ts_queue': asyncio.Queue(),
+            'mutex': asyncio.locks.Lock()
+
+        }
+
+        return aiocoap.Message(code=aiocoap.CHANGED)
+
+    
+    async def render_put(self, request):
+        print('PUT payload: %s' % request.payload)
+        return self.register_device(request)
+        
+     
+
 class ButtonPressedResource(resource.Resource):
     """ 
         Resource for endpoints to write to if theire connected buzzer-button was pressed.
@@ -86,45 +126,50 @@ class ButtonPressedResource(resource.Resource):
 
     def __init__(self):
         super().__init__()
-        '''
-            'dev_name':
-            {
-                'time_stamp': ts    
-            }
-        '''
-        self.device_status_map = {}
 
-    def set_content(self, content):
+    async def set_content(self, content):
         '''
             expected content format:
-                device_name,time_stamp
+                device_name,time_stamp (ISO 8601) 
             Example:
-                buzzer1,2021-07-03 16:21:12.357246
+                buzzer1,2024-07-01T15:45:44.585110
         '''
         # todo regex for timestamp and device name
         matches = re.findall(r'([^,]+)',content)
 
         device_id = matches[0]
-        time_stamp = datetime.strptime("%Y-%m-%d %H:%M:%S.%f")
+        time_stamp = datetime.fromisoformat(matches[1])
         
-
-        self.device_status_map[device_id]['time_stamp'] = time_stamp
+        async with device_status_map[device_id]['mutex']:
+            await device_status_map[device_id]['ts_queue'].put(time_stamp)
         
-    async def render_get(self, request):
-        return aiocoap.Message(payload=self.content)
 
     async def render_put(self, request):
-        
         print('PUT payload: %s' % request.payload)
-        self.set_content(request.payload.decode('ascii'))
+        await self.set_content(request.payload.decode('ascii'))
         return aiocoap.Message(code=aiocoap.CHANGED)
 
-    pass
+
+
+async def send_data(ctx,uri,payload):
+    request = aiocoap.Message(code=PUT, uri=uri,payload=payload)
+    requester = ctx.request(request)
+    resp = await requester.response
+    return resp
+
+
+async def reset_buzzers():
+    ctx = await aiocoap.Context.create_client_context()
+
+    for device in device_status_map.values():
+        send_data(ctx, f"{device['ep']}/reset_buzzer",payload="1".encode('ascii'))
+        with device['ts_queue'].mutex:
+            device['ts_queue'].queue.clear()
 
 
 # logging setup
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
 async def main():
@@ -135,9 +180,8 @@ async def main():
             resource.WKCResource(root.get_resources_as_linkheader,impl_info=None))
     # root.add_resource([], Welcome())
     root.add_resource(['b','0'], ButtonResource())
-    # root.add_resource(['other', 'block'], BlockResource())
-    # root.add_resource(['other', 'separate'], SeparateLargeResource())
-    # root.add_resource(['whoami'], WhoAmI())
+    root.add_resource(['b','pressed'], ButtonPressedResource())
+    root.add_resource(['b','register'], ButtonRegisterResource())
 
     server_ctx = await aiocoap.Context.create_server_context(root,bind=("::",9993))
   
