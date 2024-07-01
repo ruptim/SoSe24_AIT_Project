@@ -52,6 +52,9 @@
 #include "coap_client.h"
 #include "rd_registration.h"
 
+#include "gameshow_buzzer.h"
+
+
 #define MAIN_QUEUE_SIZE (8)
 
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
@@ -59,7 +62,8 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 char rd_register_thread_stack[THREAD_STACKSIZE_MAIN];
 
 static const shell_command_t shell_commands[] = {
-    { "coap", "CoAP client", gcoap_cli_cmd },
+    // { "coap", "CoAP client", gcoap_cli_cmd },
+    { "time", "get ISO 8601 time", get_time },
     { NULL, NULL, NULL }
 };
 

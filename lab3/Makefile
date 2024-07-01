@@ -76,6 +76,8 @@ USEMODULE += shell_cmds_default
 USEMODULE += uri_parser
 USEMODULE += od
 USEMODULE += xtimer
+USEMODULE += timex
+USEMODULE += sntp
 
 include $(RIOTBASE)/tests/Makefile.boards.netif
 ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
