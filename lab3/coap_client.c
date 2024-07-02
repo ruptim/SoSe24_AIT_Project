@@ -409,3 +409,28 @@ help:
     return _print_usage(argv);
 }
 
+
+
+void send_data(const char* uri_base, const char* path, const void* payload, size_t payload_len,
+                    gcoap_resp_handler_t resp_handler, void* context){
+    uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
+    coap_pkt_t pdu;    
+    size_t len;
+
+    char uri_buf[128];
+ 
+    sock_udp_ep_t remote;
+    
+    _uristr2remote(uri_base,&remote,NULL, &uri_buf[0], sizeof(uri_buf));
+    
+  
+    gcoap_req_init(&pdu, buf, CONFIG_GCOAP_PDU_BUF_SIZE, COAP_METHOD_PUT, path);
+    coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
+    len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
+
+    len += coap_payload_put_bytes(&pdu,payload, payload_len);
+
+    gcoap_req_send(buf,len,&remote,resp_handler,context,0);
+
+}
+

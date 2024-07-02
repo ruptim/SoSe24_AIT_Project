@@ -38,6 +38,7 @@
 
 coap_resource_t _resources[MAX_RESOURCES];
 char _resource_uris[MAX_RESOURCES][CONFIG_URI_MAX];
+uint8_t resource_count = 0;
 gcoap_listener_t _listener;
 
 /* Adds link format params to resource list */
@@ -102,11 +103,11 @@ int get_rgb_values(short int *states, char *payload)
 ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_request_ctx_t *ctx)
 {
     bool observer_req = false;
-    if (coap_has_observe(pdu))
-    {
-        uint32_t obs = coap_get_observe(pdu);
-        observer_req = obs == 0;
-    }
+    // if (coap_has_observe(pdu))
+    // {
+    //     uint32_t obs = coap_get_observe(pdu);
+    //     observer_req = obs == 0;
+    // }
 
     const int dev_pos = (int)ctx->resource->context;
 
@@ -157,10 +158,12 @@ ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_requ
         if (dev_class == SAUL_ACT_LED_RGB ||
             dev_class == SAUL_SENSE_ACCEL ||
             dev_class == SAUL_SENSE_COLOR ||
-            dev_class == SAUL_SENSE_MAG)
+            dev_class == SAUL_SENSE_MAG   ||
+            dev_class == SAUL_SENSE_GYRO
+            )
         {
-            fmt_u16_dec(value[1], data.val[1]);
-            fmt_u16_dec(value[2], data.val[2]);
+            fmt_s16_dec(value[1], data.val[1]);
+            fmt_s16_dec(value[2], data.val[2]);
             values_to_send = 3;
         }
 
@@ -183,16 +186,16 @@ ssize_t _riot_board_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_requ
             int value_len = 0;
             if (prefix != '\0' && data.scale == 0)
             {
-                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s %c%s", value[0], prefix, unit);
+                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s %c%s", value[i], prefix, unit);
             }
             else if (prefix == '\0' && data.scale != 0)
             { /* no prefix => scientific notation */
 
-                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%se%d %s", value[0], data.scale, unit);
+                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%se%d %s", value[i], data.scale, unit);
             }
             else
             { /* no prefix and no sclaing */
-                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s %s", value[0], unit);
+                value_len = snprintf(response_ptr, MAX_GET_PAYLOAD_LEN, "%s %s", value[i], unit);
             }
             resp_str_len += value_len;
             response_ptr += value_len;
@@ -326,7 +329,8 @@ int init_board_periph_resources(void)
         perror("Cant register all devices!");
         return 0;
     }
-
+    
+    resource_count += dev_count;
     return dev_count;
 }
 

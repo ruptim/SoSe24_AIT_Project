@@ -79,6 +79,8 @@ USEMODULE += xtimer
 USEMODULE += timex
 USEMODULE += sntp
 
+USEMODULE += periph_gpio_irq
+
 include $(RIOTBASE)/tests/Makefile.boards.netif
 ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
   # Use modules for networking
