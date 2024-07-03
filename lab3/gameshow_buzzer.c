@@ -36,6 +36,9 @@ bool init_done = false;
 
 bool buzzer_locked;
 mutex_t buzzer_mutex = MUTEX_INIT;
+unsigned int btn = GPIO_PIN(PORT_A, 2);
+unsigned int led1 = GPIO_PIN(PORT_A, 1);
+
 
 void send_test_data(void)
 {
@@ -57,7 +60,6 @@ void send_test_data(void)
     strcat(payload, ",");
     strcat(payload, time_str);
     printf("SENDING: %s\n", payload);
-    // snprintf(payload,strlen(payload),"%s,%s",payload,time_str);
     send_data(uri_base, path2, (void *)payload, strlen(payload), NULL, NULL);
 }
 
@@ -78,7 +80,9 @@ static void btn_callback(void *arg)
             mutex_lock(&led1_mutex);
 
             gpio_toggle(*led1);
-            buzzer_locked = true;
+            printf("BUZZER!\n");
+
+            // buzzer_locked = true;
 
 
             // send_test_data();
@@ -95,12 +99,8 @@ void init_buzzer_periph(void)
     // unsigned int btn = BTN0_PIN;
     // unsigned int led1 = LED0_PIN;
 
-    unsigned int btn = GPIO_PIN(PORT_E, 19);
-    gpio_init(btn, GPIO_IN);
-    unsigned int led1 = GPIO_PIN(PORT_E, 18);
     gpio_init(led1, GPIO_OUT);
-
-    gpio_init_int(btn, GPIO_IN, GPIO_RISING, btn_callback, NULL);
+    gpio_init_int(btn, GPIO_IN_PU, GPIO_FALLING, btn_callback, (void*) &led1);
 }
 
 void get_iso8601_time(char *buffer, size_t buffer_size)
@@ -178,6 +178,7 @@ int get_time(int argc, char **argv)
         init_buzzer_resources();
         init_buzzer_periph();
         init_done = true;
+        printf("INIT DONE \n");
 
     }
 
