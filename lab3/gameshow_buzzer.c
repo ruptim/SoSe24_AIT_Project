@@ -50,7 +50,6 @@ void send_test_data(void)
 
     char payload[128] = "buzzer1";
     send_data(uri_base, path, (void *)payload, strlen(payload), NULL, NULL);
-    // sntp_sync();
 
     get_iso8601_time(time_str, sizeof(time_str));
 
@@ -109,12 +108,12 @@ void get_iso8601_time(char *buffer, size_t buffer_size)
     struct tm tm_info;
     (void)tm_info;
 
-    // uint64_t microseconds = sntp_get_unix_usec();
+    uint64_t microseconds = sntp_get_unix_usec();
 
-    /* --- just for testing  --- */
-    uint64_t microseconds = 1719846389000000;
-    microseconds += xtimer_now_usec64();
-    /* --- just for testing  --- */
+    // /* --- just for testing  --- */
+    // uint64_t microseconds = 1719846389000000;
+    // microseconds += xtimer_now_usec64();
+    // /* --- just for testing  --- */
 
     time_t seconds = microseconds / 1000000;
     long remaining_microseconds = microseconds % 1000000;
@@ -173,8 +172,17 @@ int get_time(int argc, char **argv)
     (void)argc;
     (void)argv;
 
+    char* server_ip = "[2001:67c:254:b0b2:affe:4000:0:1]:123";
+    // char server_buf[128];
+    sock_udp_ep_t server;
+    
+    sock_udp_name2ep(&server, server_ip);
+    printf("SNTP Sync: %d\n",sntp_sync(&server, 3000*1000));
+
     if (!init_done)
-    {
+    {   
+      
+
         init_buzzer_resources();
         init_buzzer_periph();
         init_done = true;
