@@ -4,19 +4,19 @@ import {Card, CardBody, CardHeader} from "@nextui-org/card";
 import {Chip} from "@nextui-org/chip";
 
 type BuzzerParams = {
-    buzzerId: number;
+    buzzerRank: number | null;
     buzzerName: string;
     isPressed: boolean;
     isLocked: boolean;
     delay: number | null;
 }
 
-export function Buzzer({buzzerId, buzzerName, isLocked, isPressed, delay}:BuzzerParams){
+export function Buzzer({buzzerRank, buzzerName, isLocked, isPressed, delay}:BuzzerParams){
     return (
         <Card>
             <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
-                <p className="text-tiny uppercase font-bold">#{buzzerId}</p>
-                <small className="text-default-500">{buzzerName}</small>
+                <p className="text-tiny uppercase font-bold">{buzzerName}</p>
+                <small className="text-default-500">{buzzerRank ? (`#${buzzerRank}`) : (<>&nbsp;</>)}</small>
                 <small className="text-default-500">
                     {delay?.toFixed(3)} {delay?('s'):(<>&nbsp;</>)}
                 </small>
