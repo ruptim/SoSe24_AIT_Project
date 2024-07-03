@@ -6,7 +6,7 @@
 #define CONFIG_URI_MAX 128
 
 
-#define URI_BASE "/b/"
+#define URI_BASE "/b/" 
 #define MAX_PUT_PAYLOAD_LEN 11
 #define MAX_GET_PAYLOAD_LEN 128
 #define MAX_LINK_LENGTH 10

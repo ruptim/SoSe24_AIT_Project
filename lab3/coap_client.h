@@ -4,7 +4,7 @@
 #ifndef CONFIG_URI_MAX
 #define CONFIG_URI_MAX      128
 #endif
-
+ 
 #include "net/gcoap.h"
 #include "net/sock/util.h"
 

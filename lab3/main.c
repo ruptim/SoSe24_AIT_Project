@@ -73,6 +73,7 @@ int main(void)
     int size = init_board_periph_resources();
 
 
+
     _listener.resources = &_resources[0];
     _listener.resources_len = (size_t) size;
     _listener.tl_type = GCOAP_SOCKET_TYPE_UNDEF;
@@ -90,10 +91,15 @@ int main(void)
     // printf("  ep: %s\n", cord_common_get_ep());
     // printf("  lt: %is\n", (int)CONFIG_CORD_LT);
 
+
     
     thread_create(rd_register_thread_stack, sizeof(rd_register_thread_stack),
             THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
             register_at_resource_directory, NULL, "rcv_thread");
+
+
+    init_buzzer();
+
 
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);

@@ -9,6 +9,7 @@
 
 #include "timex.h"
 #include "xtimer.h"
+#include "tm.h"
 #include "net/sntp.h"
 
 #include "periph/gpio.h"
@@ -18,7 +19,12 @@
 #define MAX_RESOURCES 10
 #define CONFIG_URI_MAX 128
 #define BUZZER_RESET_URI "/buzzer/reset"
-#define DEBOUNCE_DELAY_MS 20
+#define DEBOUNCE_DELAY_MS 200
+
+#define MAX_SNTP_ATTEMPS 5
+#define BUZZER_STARTUP_DELAY_MS 2000
+#define TIME_ZONE_OFFSET_HOUR 2
+
 
 // #define BUZZER_SWITCH_PIN
 // #define BUZZER_LED_PIN PORT_E, 18
@@ -49,7 +55,7 @@ void send_test_data(void)
     char *path = "/b/register";
 
     char payload[128] = "buzzer1";
-    send_data(uri_base, path, (void *)payload, strlen(payload), NULL, NULL);
+    send_data(uri_base, path, (void *)payload, strlen(payload), NULL,  NULL);
 
     get_iso8601_time(time_str, sizeof(time_str));
 
@@ -71,6 +77,7 @@ static void btn_callback(void *arg)
     ztimer_now_t cur_ts = ztimer_now(ZTIMER_MSEC);
     ztimer_release(ZTIMER_MSEC);
 
+    //todo: check long or short press
     
     if(cur_ts - btn_debounce_ts >= DEBOUNCE_DELAY_MS){
 
@@ -120,6 +127,8 @@ void get_iso8601_time(char *buffer, size_t buffer_size)
 
     // Convert seconds since epoch to tm structure
     gmtime_r(&seconds, &tm_info);
+    tm_info.tm_hour += TIME_ZONE_OFFSET_HOUR;
+
     strftime(buffer, buffer_size, "%Y-%m-%dT%H:%M:%S", &tm_info);
     snprintf(buffer + strlen(buffer), buffer_size - strlen(buffer), ".%06ldZ", remaining_microseconds);
 }
@@ -167,28 +176,43 @@ void init_buzzer_resources(void)
     gcoap_register_listener(&_buzzer_listener);
 }
 
-int get_time(int argc, char **argv)
-{
-    (void)argc;
-    (void)argv;
+int init_buzzer(void){
 
     char* server_ip = "[2001:67c:254:b0b2:affe:4000:0:1]:123";
     // char server_buf[128];
     sock_udp_ep_t server;
     
     sock_udp_name2ep(&server, server_ip);
-    printf("SNTP Sync: %d\n",sntp_sync(&server, 3000*1000));
+    int attempts = 0;
+    int sntp_conn = -1;
+    while((attempts < MAX_SNTP_ATTEMPS) && (sntp_conn != 0)){
+        sntp_conn = sntp_sync(&server, 3000*1000);
+        attempts++;
+    }
+    if ( attempts == MAX_SNTP_ATTEMPS){
+        printf("[Error] Couldn't sync with sntp server: %d!",sntp_conn );
+        return -1;
+    }
+    printf("SNTP Sync: %d, %d\n",sntp_conn, attempts);
 
     if (!init_done)
     {   
-      
-
         init_buzzer_resources();
         init_buzzer_periph();
         init_done = true;
         printf("INIT DONE \n");
 
     }
+    
+
+    return 0;
+}
+
+
+int get_time(int argc, char **argv)
+{
+    (void)argc;
+    (void)argv;
 
     send_test_data();
 

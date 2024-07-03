@@ -285,7 +285,7 @@ int gcoap_cli_cmd(int argc, char **argv)
     }
     if (code_pos == -1) {
         goto help;
-    }
+    } 
 
     /* parse options */
     int apos = 2;       /* position of address argument */

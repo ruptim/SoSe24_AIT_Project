@@ -329,7 +329,7 @@ int init_board_periph_resources(void)
         perror("Cant register all devices!");
         return 0;
     }
-    
+     
     resource_count += dev_count;
     return dev_count;
 }
