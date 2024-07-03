@@ -1,13 +1,20 @@
+'use client';
+
 import {Buzzer} from "@/app/game/buzzer/buzzer";
 import {BuzzerResetButton} from "@/app/game/buzzer/buzzer-reset-button";
 import {BuzzerLockButton} from "@/app/game/buzzer/buzzer-lock-button";
 import {BuzzerType} from "@/app/game/types/game-types";
+import {MouseEventHandler} from "react";
 
 type BuzzerContainerParams = {
-    buzzers: BuzzerType[]
+    buzzers: BuzzerType[],
+    onResetClick: () => void,
+    onLockClick: () => void
 }
 
-export function BuzzerContainer({buzzers}: BuzzerContainerParams){
+export function BuzzerContainer({buzzers, onResetClick, onLockClick}: BuzzerContainerParams){
+
+
     return (
         <div>
             <div className={"flex flex-row justify-center gap-5"}>
@@ -18,8 +25,8 @@ export function BuzzerContainer({buzzers}: BuzzerContainerParams){
                 ))}
             </div>
             <div className={"flex flex-row justify-center gap-5"}>
-                <BuzzerResetButton></BuzzerResetButton>
-                <BuzzerLockButton></BuzzerLockButton>
+                <BuzzerResetButton onResetClick={onResetClick}></BuzzerResetButton>
+                <BuzzerLockButton onLockClick={onLockClick}></BuzzerLockButton>
             </div>
         </div>
     )

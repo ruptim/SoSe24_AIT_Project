@@ -1,7 +1,14 @@
+'use client';
+
 import {Button} from "@nextui-org/button";
 
-export function BuzzerLockButton(){
+type BuzzerLockButtonParams = {
+    onLockClick: () => void;
+}
+
+export function BuzzerLockButton({onLockClick}: BuzzerLockButtonParams){
+
     return (
-        <Button color="warning">Lock All</Button>
+        <Button color="warning" onClick={onLockClick}>Lock All</Button>
     )
 }
