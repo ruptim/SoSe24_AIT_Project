@@ -3,8 +3,8 @@
 import {Button} from "@nextui-org/button";
 
 type BuzzerLockButtonParams = {
-    onLockClick: () => void;
-    isActive: boolean;
+    onLockClick: () => void,
+    isActive: boolean
 }
 
 export function BuzzerLockButton({onLockClick, isActive}: BuzzerLockButtonParams){

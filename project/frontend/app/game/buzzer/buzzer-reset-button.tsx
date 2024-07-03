@@ -3,7 +3,7 @@
 import {Button} from "@nextui-org/button";
 
 type BuzzerResetButtonParams = {
-    onResetClick: () => void;
+    onResetClick: () => void
 }
 
 export function BuzzerResetButton({onResetClick}: BuzzerResetButtonParams){

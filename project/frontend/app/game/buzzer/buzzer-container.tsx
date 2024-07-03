@@ -4,6 +4,7 @@ import {Buzzer} from "@/app/game/buzzer/buzzer";
 import {BuzzerResetButton} from "@/app/game/buzzer/buzzer-reset-button";
 import {BuzzerLockButton} from "@/app/game/buzzer/buzzer-lock-button";
 import {BuzzerType} from "@/app/game/types/game-types";
+import {useEffect} from "react";
 
 type BuzzerContainerParams = {
     buzzers: BuzzerType[],
@@ -13,7 +14,6 @@ type BuzzerContainerParams = {
 }
 
 export function BuzzerContainer({buzzers, onResetClick, onLockClick, isAllLocked}: BuzzerContainerParams){
-
 
     return (
         <div>
