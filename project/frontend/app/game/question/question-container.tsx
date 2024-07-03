@@ -23,7 +23,7 @@ export function QuestionContainer({questions}: QuestionContainerParams){
     }
 
     function decreaseCount(){
-        if(currentCount - 1){
+        if(currentCount){
             setCurrentCount(currentCount - 1);
         }
     }
@@ -33,11 +33,11 @@ export function QuestionContainer({questions}: QuestionContainerParams){
     }, [currentCount]);
 
     return (
-        <div>
+        <div className="flex flex-col w-full min-w-full">
             <Question question={currentQuestion.question} answer={currentQuestion.answer}></Question>
-            <div className={"flex mt-10 mb-2 justify-center gap-2"}>
-                <div className={"box-border w-1/5"}><QuestionButton isSkip={false} onButtonClick={decreaseCount} isEnabled={currentCount > 0}></QuestionButton></div>
-                <div className={"box-border w-1/5"}><QuestionButton isSkip={true} onButtonClick={increaseCount} isEnabled={currentCount + 1 < maxQuestions}></QuestionButton></div>
+            <div className={"flex mt-10 mb-2 justify-center gap-5 w-full"}>
+                <div className={"box-border w-1/4"}><QuestionButton isSkip={false} onButtonClick={decreaseCount} isEnabled={currentCount > 0}></QuestionButton></div>
+                <div className={"box-border w-1/4"}><QuestionButton isSkip={true} onButtonClick={increaseCount} isEnabled={currentCount + 1 < maxQuestions}></QuestionButton></div>
             </div>
             <div className={"flex justify-end"}>Question&nbsp;<QuestionCounter currentCount={currentCount + 1} maxCount={maxQuestions}></QuestionCounter></div>
         </div>

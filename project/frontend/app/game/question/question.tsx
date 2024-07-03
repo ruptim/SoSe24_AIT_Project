@@ -9,9 +9,11 @@ type questionParams = {
 
 export function Question({question, answer}: questionParams){
     return (
-        <Accordion>
+        <Accordion className="w-full min-w-full text-center">
             <AccordionItem key={1} title={<p className={title()}>{question}</p>}>
-                {answer}
+                <div className="max-w-prose text-left">
+                    {answer}
+                </div>
             </AccordionItem>
         </Accordion>
     )

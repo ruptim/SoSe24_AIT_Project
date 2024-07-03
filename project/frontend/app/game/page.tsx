@@ -47,7 +47,7 @@ export default function GamePage() {
 
 
     return (
-    <div>
+    <div className="w-full max-w-screen-md min-w-full">
         <QuestionContainer questions={questions}></QuestionContainer>
         <Divider className={"mt-5 mb-5"}></Divider>
         <ActivityContainer buzzerList={buzzerList}></ActivityContainer>
