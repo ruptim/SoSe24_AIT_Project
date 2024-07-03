@@ -6,3 +6,7 @@ export type BuzzerType = {
     delay: number | null;
 }
 
+export type QuestionType = {
+    question: string;
+    answer: string;
+}

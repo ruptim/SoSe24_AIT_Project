@@ -1,18 +1,45 @@
+'use client';
+
 import {QuestionButton} from "@/app/game/question/question-button";
 import {QuestionCounter} from "@/app/game/question/question-counter";
 import {Question} from "@/app/game/question/question";
+import {QuestionType} from "@/app/game/types/game-types";
+import {useEffect, useState} from "react";
 
-export function QuestionContainer(){
-    let question = "Lorem Ipsum dolor sit amet?"
-    let answer = "This is the answer."
+type QuestionContainerParams = {
+    questions: QuestionType[]
+}
+
+export function QuestionContainer({questions}: QuestionContainerParams){
+
+    let maxQuestions = questions.length;
+    let [currentQuestion, setCurrentQuestion] = useState<QuestionType>(questions[0]);
+    let [currentCount, setCurrentCount] = useState(0);
+
+    function increaseCount(){
+        if(currentCount + 1 < maxQuestions){
+            setCurrentCount(currentCount + 1);
+        }
+    }
+
+    function decreaseCount(){
+        if(currentCount - 1){
+            setCurrentCount(currentCount - 1);
+        }
+    }
+
+    useEffect(() => {
+        setCurrentQuestion(questions[currentCount]);
+    }, [currentCount]);
+
     return (
         <div>
-            <Question question={question} answer={answer}></Question>
+            <Question question={currentQuestion.question} answer={currentQuestion.answer}></Question>
             <div className={"flex mt-10 mb-2 justify-center gap-2"}>
-                <div className={"box-border w-1/5"}><QuestionButton isSkip={false}></QuestionButton></div>
-                <div className={"box-border w-1/5"}><QuestionButton isSkip={true}></QuestionButton></div>
+                <div className={"box-border w-1/5"}><QuestionButton isSkip={false} onButtonClick={decreaseCount} isEnabled={currentCount > 0}></QuestionButton></div>
+                <div className={"box-border w-1/5"}><QuestionButton isSkip={true} onButtonClick={increaseCount} isEnabled={currentCount + 1 < maxQuestions}></QuestionButton></div>
             </div>
-            <div className={"flex justify-end"}>Question&nbsp;<QuestionCounter currentCount={1} maxCount={10}></QuestionCounter></div>
+            <div className={"flex justify-end"}>Question&nbsp;<QuestionCounter currentCount={currentCount + 1} maxCount={maxQuestions}></QuestionCounter></div>
         </div>
     )
 }

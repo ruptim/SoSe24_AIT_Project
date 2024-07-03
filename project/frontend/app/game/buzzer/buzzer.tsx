@@ -1,6 +1,5 @@
 'use client';
 
-import {useEffect, useState} from "react";
 import {Card, CardBody, CardHeader} from "@nextui-org/card";
 import {Chip} from "@nextui-org/chip";
 
@@ -13,10 +12,6 @@ type BuzzerParams = {
 }
 
 export function Buzzer({buzzerId, buzzerName, isLocked, isPressed, delay}:BuzzerParams){
-    let lockedClassName: string = isLocked ? 'border-3 border-yellow-500' : '';
-    // let pressedColorString: "success" | "default" | "primary" | "secondary" | "warning" | "danger" | undefined = isPressed ? 'success' : 'default';
-    let pressedColorString: string = isPressed ? 'bg-success' : 'bg-default';
-
     return (
         <Card>
             <CardHeader className="pb-0 pt-2 px-4 flex-col items-start">
@@ -28,7 +23,7 @@ export function Buzzer({buzzerId, buzzerName, isLocked, isPressed, delay}:Buzzer
             </CardHeader>
             <CardBody>
                 <div className={"flex justify-center"}>
-                    <Chip className={`min-w-full text-center ${lockedClassName} ${pressedColorString}`}>{isPressed ? '' : 'not'} pressed</Chip>
+                    <Chip className={`min-w-full text-center ${isLocked ? 'border-3 border-yellow-500' : ''}`} color={isPressed ? "success" : "default"}>{isPressed ? '' : 'not'} pressed</Chip>
                 </div>
             </CardBody>
         </Card>

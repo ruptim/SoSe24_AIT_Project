@@ -4,7 +4,7 @@ import {BuzzerContainer} from "@/app/game/buzzer/buzzer-container";
 import {Divider} from "@nextui-org/divider";
 import {ManagementContainer} from "@/app/game/management/management-container";
 import {BuzzerType} from "@/app/game/types/game-types";
-import {useEffect, useState} from "react";
+import {useState} from "react";
 
 type ActivityParams = {
     buzzerList: BuzzerType[]
