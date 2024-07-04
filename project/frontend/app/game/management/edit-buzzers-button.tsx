@@ -1,34 +1,23 @@
 'use client'
 import {Button} from "@nextui-org/button";
 import {Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, useDisclosure} from "@nextui-org/modal";
-import React from "react";
+import React, {MouseEventHandler} from "react";
 import {getKeyValue, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip} from "@nextui-org/react";
 import { DeleteIcon } from "@/components/icons";
+import {BuzzerType} from "@/app/game/types/game-types";
 
-export function EditBuzzersButton(){
+type EditBuzzersButtonParams = {
+    buzzers: BuzzerType[],
+    onDeleteClick: (buzzer: BuzzerType) => void;
+}
+
+export function EditBuzzersButton({buzzers, onDeleteClick}: EditBuzzersButtonParams){
     const {isOpen, onOpen, onOpenChange} = useDisclosure();
-
-    let rows = [
-        {
-            key: "0",
-            id: "0",
-            name: "Buzzer Robin",
-        },
-        {
-            key: "1",
-            id: "1",
-            name: "Timons Buzzer",
-        }
-    ]
 
     const columns = [
         {
-            key: "id",
-            label: "ID",
-        },
-        {
-            key: "name",
-            label: "NAME",
+            key: "buzzerName",
+            label: "BUZZER NAME",
         },
         {
             key: "remove",
@@ -36,14 +25,14 @@ export function EditBuzzersButton(){
         },
     ];
 
-    const renderCell = React.useCallback((item: {key: string, id: string, name: string}, columnKey: string | number) => {
+    const renderCell = React.useCallback((item: BuzzerType, columnKey: string | number) => {
         // @ts-ignore
         const cellValue = item[columnKey];
 
         switch (columnKey) {
             case "remove":
                 return (
-                    <div className="relative flex items-center gap-2">
+                    <div className="relative flex items-center gap-2" onClick={(event) => onDeleteClick(item)}>
                         <Tooltip color="danger" content="Delete user">
                           <span className="text-lg text-danger cursor-pointer active:opacity-50">
                             <DeleteIcon />
@@ -73,10 +62,10 @@ export function EditBuzzersButton(){
                                             </TableColumn>
                                         )}
                                     </TableHeader>
-                                    <TableBody items={rows}>
-                                        {(item) => (
-                                            <TableRow key={item.key}>
-                                                {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
+                                    <TableBody items={buzzers}>
+                                        {(buzzer) => (
+                                            <TableRow key={buzzer.buzzerId}>
+                                                {(columnKey) => <TableCell>{renderCell(buzzer, columnKey)}</TableCell>}
                                             </TableRow>
                                         )}
                                     </TableBody>

@@ -15,7 +15,7 @@ export default function GamePage() {
         },
         {
             buzzerId: 1,
-            buzzerName: 'Second Buzzer',
+            buzzerName: 'Second Buzzer that has a long name',
             isPressed: false,
             isLocked: false,
             delay: null

@@ -28,10 +28,10 @@ export function ActivityContainer({buzzerList}:ActivityParams){
     }
 
     return (
-        <>
+        <div>
             <BuzzerContainer buzzers={buzzerArr} onResetClick={handleResetClick} onLockClick={handleLockClick} isAllLocked={isLocked}></BuzzerContainer>
             <Divider className={"mt-5 mb-5"}></Divider>
-            <ManagementContainer></ManagementContainer>
-        </>
+            <ManagementContainer buzzers={buzzerArr}></ManagementContainer>
+        </div>
     );
 }

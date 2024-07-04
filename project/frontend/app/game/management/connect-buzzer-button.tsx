@@ -5,6 +5,7 @@ import React from "react";
 import {Spinner} from "@nextui-org/spinner";
 import {Buzzer} from "@/app/game/buzzer/buzzer";
 import {BuzzerType} from "@/app/game/types/game-types";
+import {Divider} from "@nextui-org/divider";
 
 type ConnectBuzzerButtonParams = {
     isPairing: boolean,
@@ -41,12 +42,13 @@ export function ConnectBuzzerButton({
                                 }
                                 {buzzersShown.length ?
                                     (<>
+                                        <Divider className={"mt-2 mb-2"}></Divider>
                                         <p>
-                                            New Buzzer connected:
+                                            New Buzzer{buzzersShown.length > 1 ? 's' : ''} connected:
                                         </p>
-                                        <div className={"box-border w-1/3 flex justify-center"}>
+                                        <div className={"box-border w-full flex justify-center gap-2 flex-wrap"}>
                                             {buzzersShown.map(buzzer => (
-                                                <div key={buzzer.buzzerId}>
+                                                <div className={"box-border h-32 w-32"} key={buzzer.buzzerId}>
                                                    <Buzzer buzzerRank={null} buzzerName={buzzer.buzzerName} isPressed={buzzer.isPressed} isLocked={buzzer.isLocked} delay={null}></Buzzer>
                                                 </div>
 
