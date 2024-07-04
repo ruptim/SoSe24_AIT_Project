@@ -1,5 +1,7 @@
 /*
- * Copyright (C) 2024 ruptim
+ * Copyright (C) 2008, 2009, 2010 Kaspar Schleiser <kaspar@schleiser.de>
+ * Copyright (C) 2013 INRIA
+ * Copyright (C) 2013 Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
  *
  * This file is subject to the terms and conditions of the GNU Lesser
  * General Public License v2.1. See the file LICENSE in the top level
@@ -7,146 +9,73 @@
  */
 
 /**
- * @ingroup     buzzer system
+ * @ingroup     examples
  * @{
  *
  * @file
- * @brief       a distributed buzzer system
+ * @brief       Default application that shows a lot of functionality of RIOT
  *
- * @author      ruptim <timonrupelt@gmx.de>
+ * @author      Kaspar Schleiser <kaspar@schleiser.de>
+ * @author      Oliver Hahm <oliver.hahm@inria.fr>
+ * @author      Ludwig Knüpfer <ludwig.knuepfer@fu-berlin.de>
  *
  * @}
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-
 
 #include "shell.h"
 
-
 #include "led.h"
-#include "periph/gpio.h"
-#include "net/sntp.h"
-#include "net/wifi.h"
-#include "ztimer.h"
-#include "mutex.h"
+
+#include "fmt.h"
+#include "net/gcoap.h"
+#include "net/utils.h"
+#include "od.h"
+#include "saul_reg.h"
+#include "phydat.h"
+
+#include "net/ipv6/addr.h"
+
+#include "thread.h"
+
 
 #ifdef MODULE_NETIF
 #include "net/gnrc/pktdump.h"
 #include "net/gnrc.h"
 #endif
 
-#define DEBOUNCE_DELAY_MS 20
 
-ztimer_now_t btn_debounce_ts;
-ztimer_t timer;
-mutex_t led1_mutex = MUTEX_INIT;
+#include "../lab3/coap_server.h"
+#include "../lab3/coap_client.h"
+#include "../lab3/rd_registration.h"
 
-static void btn_callback(void *arg){
-    unsigned int *led1 = (unsigned int*) arg;
+#include "gameshow_buzzer.h"
 
-     unsigned int btn = GPIO_PIN(PORT_D, 2);
-    
-    ztimer_acquire(ZTIMER_MSEC);
-    ztimer_now_t cur_ts = ztimer_now(ZTIMER_MSEC);
-    ztimer_release(ZTIMER_MSEC);
 
-    if(cur_ts - btn_debounce_ts >= DEBOUNCE_DELAY_MS){
-        if (*led1 != GPIO_UNDEF)
-        {
-            mutex_lock(&led1_mutex);
-            gpio_toggle(*led1);
-            int v = gpio_read(btn);
-            printf("Button: %d\n",v);
-            // printf("PRESSED!\n");
-            mutex_unlock(&led1_mutex);
-        }
-        btn_debounce_ts = cur_ts;
-    }
+#define MAIN_QUEUE_SIZE (8)
 
-}
+static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 
-void timer_callback(void *arg){
-    (void) arg;
 
-    mutex_lock(&led1_mutex);
-    LED_TOGGLE(0);
-    mutex_unlock(&led1_mutex);
-
-    // ztimer_set(ZTIMER_MSEC,&timer,1000);
-
-}
-
-static int hello_world(int argc, char **argv) {
-    /* Suppress compiler errors */
-    (void)argc;
-    (void)argv;
-    printf("hello world!\n");
-
-    /* toggle led1 */
-    unsigned int led1 = GPIO_PIN(1,0);
-    if (led1 != GPIO_UNDEF){
-        int val = gpio_read(led1);
-
-        mutex_lock(&led1_mutex);
-        gpio_write(led1,!(bool) val);
-        mutex_unlock(&led1_mutex);
-    }
-
-    /* read button*/
-    unsigned int btn = GPIO_PIN(2,13);
-    if (btn != GPIO_UNDEF){
-        int val = gpio_read(btn);
-        printf("Button: %s\n",val==0?"LOW":"HIGH");
-    }
-
-    uint64_t usec = sntp_get_unix_usec();
-    printf("USEC: %lld \n",usec);
-
-    return 0;
-}
-
-const shell_command_t shell_commands[] = {
-    {"hello", "prints hello world", hello_world},
+static const shell_command_t shell_commands[] = {
+    { "time", "get ISO 8601 time", get_time },
     { NULL, NULL, NULL }
 };
 
 
-
-
 int main(void)
 {
+    msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
+
     
-    // unsigned int led1 = GPIO_PIN(1,0);
-    // unsigned int btn = GPIO_PIN(2,13);
-
-    // unsigned int btn = BTN0_PIN;
-    unsigned int led1 = LED0_PIN;
-
-    // unsigned int btn = GPIO_PIN(PORT_F,13);
-
-    unsigned int btn = GPIO_PIN(PORT_D, 2);
-    // gpio_init(btn, GPIO_IN_PU);
-    // unsigned int led1 = GPIO_PIN(PORT_E, 18);
-    // gpio_init(led1, GPIO_OUT);
-
-    if (btn != GPIO_UNDEF){
-        gpio_init_int(btn,GPIO_IN,GPIO_FALLING,btn_callback,(void*) &led1);
-        
-        ztimer_acquire(ZTIMER_MSEC);
-        btn_debounce_ts = ztimer_now(ZTIMER_MSEC);
-        ztimer_release(ZTIMER_MSEC);
-    }
-
-    timer.callback=timer_callback;        
-    ztimer_set(ZTIMER_MSEC,&timer,1000);
-
-
-    (void) puts("Welcome to RIOT!");
+    init_buzzer();
 
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);
+    
 
     return 0;
 }
