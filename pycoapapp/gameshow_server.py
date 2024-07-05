@@ -95,28 +95,39 @@ class ButtonRegisterResource(resource.Resource):
     def __init__(self):
         super().__init__()
 
-    def register_device(self, request):
-        payload = request.payload.decode('ascii')        
-        if device_status_map.get(payload):
-            return aiocoap.Message(code=aiocoap.BAD_REQUEST,payload="Name already in use!".encode("ascii"))    
-
-
+    def send_registered_name(self,ep):
+        device_count = len(device_status_map)
+        register_name = f"buzzer{device_count}"
         
-        device_status_map[payload] = {
-            'endpoint': request.remote.uri_base,
+        device_status_map[register_name] = {
+            'endpoint': ep,
             'register_time': datetime.now(),
             'ts_queue': asyncio.Queue(),
             'mutex': asyncio.locks.Lock()
 
         }
+        return aiocoap.Message(code=aiocoap.CHANGED,payload=register_name.encode('ascii'))
 
-        return aiocoap.Message(code=aiocoap.CHANGED)
+    def register_device(self, request):
+        payload = request.payload.decode('ascii')
+        if len(payload): 
+            if not device_status_map.get(payload):
+                # return aiocoap.Message(code=aiocoap.CHANGED,payload="-1".encode("ascii"))
+                # if requested name is not found, send new one 
+                return self.send_registered_name(request.remote.uri_base)
+
+                
+            return aiocoap.Message(code=aiocoap.CHANGED,payload="0".encode("ascii"))    
+        else:
+
+            return self.send_registered_name(request.remote.uri_base)
+
+            
 
     
     async def render_put(self, request):
         print('PUT payload: %s' % request.payload)
         return self.register_device(request)
-        
      
 
 class ButtonPressedResource(resource.Resource):
@@ -162,7 +173,7 @@ async def reset_buzzers():
     ctx = await aiocoap.Context.create_client_context()
 
     for device in device_status_map.values():
-        send_data(ctx, f"{device['ep']}/reset_buzzer",payload="1".encode('ascii'))
+        response = send_data(ctx, f"{device['ep']}/reset_buzzer",payload="1".encode('ascii'))
         with device['ts_queue'].mutex:
             device['ts_queue'].queue.clear()
 
