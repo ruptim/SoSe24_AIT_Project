@@ -9,9 +9,8 @@
 #include "net/sock/util.h"
 
 
-void send_data(const char* uri_base, const char* path, const void* payload,
-                    size_t payload_len, gcoap_resp_handler_t resp_handler, 
-                    void* context, bool confirm);
+void send_data(const char* uri_base, const char* path, const void* payload, size_t payload_len,
+                    gcoap_resp_handler_t resp_handler, void* context, bool confirm);
 
 int _uristr2remote(const char *uri, sock_udp_ep_t *remote, const char **path,
                           char *buf, size_t buf_len);

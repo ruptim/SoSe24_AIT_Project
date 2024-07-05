@@ -1,8 +1,8 @@
 
 #include "gameshow_buzzer.h"
 
-#include "../lab3/coap_client.h"
 #include "buzzer_communication.h"
+#include "defines.h"
 
 #include <stdio.h>
 #include <time.h>
@@ -16,7 +16,6 @@
 #include "periph/gpio.h"
 #include "ztimer.h"
 #include "mutex.h"
-#include "thread.h"
 
 #define MAX_RESOURCES 10
 #define CONFIG_URI_MAX 128
@@ -26,6 +25,7 @@
 #define BUZZER_PASSIV_STATE 1
 #define BUZZER_PAIRING_MODE_BLINK_DELAY_MS 200
 #define BUZZER_NOT_CONNECTED_BLINK_DELAY_MS 1000
+#define BUZZER_NORMAL_MODE_LED_STATE 1
 
 #define MAX_SNTP_ATTEMPS 5
 #define MAX_PAIRING_ATTEMPS 1
@@ -71,6 +71,32 @@ enum BLINK_MODES
     BLINK_PAIR_MODE,
 };
 
+void lock_buzzer(void){
+    mutex_lock(&buzzer_mutex);
+    buzzer_locked = true;
+    gpio_write(led1,!BUZZER_NORMAL_MODE_LED_STATE);
+    mutex_unlock(&buzzer_mutex);
+}
+
+void unlock_buzzer(void){
+    mutex_lock(&buzzer_mutex);
+    buzzer_locked = false;
+    gpio_write(led1,BUZZER_NORMAL_MODE_LED_STATE);
+    mutex_unlock(&buzzer_mutex);
+}
+
+void enable_normal_mode(void){
+    buzzer_paired = true;
+    unlock_buzzer();
+    
+}
+
+void disable_normal_mode(void){
+    lock_buzzer();
+    buzzer_paired = false; //TODO: does not fit here
+}
+
+
 void send_test_data(void)
 {
 
@@ -92,7 +118,6 @@ void send_test_data(void)
     send_data(uri_base, path2, (void *)payload, strlen(payload), NULL, NULL, false);
 }
 
-
 void send_buzzer_pressed(void)
 {
     char time_str[27];
@@ -112,34 +137,32 @@ void pair_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
 {
     (void)pdu;
     (void)remote;
+    kernel_pid_t *pairing_thread_pid = (kernel_pid_t *) memo->context;
     /* response timeout or error in response */
     if (memo->state == GCOAP_MEMO_TIMEOUT || memo->state != GCOAP_MEMO_RESP)
     {
         buzzer_pairing_mode_timeout = true;
+        thread_wakeup(*pairing_thread_pid);
         printf("PAIR TIMEOUT\n");
         return;
     }
     printf("BUZZER PAIRED\n");
 
+    buzzer_pairing_mode = false;
 
-    //TODO: make shure that no buzzer_pressed is send when releasing the long press 
-    // happens when pairing happens fast before the buzzer is released again!!
-    // ---------------
+    
+    thread_wakeup(*pairing_thread_pid);
 
 
-    ztimer_acquire(ZTIMER_MSEC);
-    btn_debounce_ts = ztimer_now(ZTIMER_MSEC);
-    ztimer_release(ZTIMER_MSEC);
-
-    buzzer_paired = true;
+    
 }
 
-void send_pair_request(void)
+void send_pair_request(kernel_pid_t *pairing_thread_pid)
 {
     char *path = "/b/register";
 
     char payload[128] = "buzzer1";
-    send_data(uri_base, path, (void *)payload, strlen(payload), pair_resp_handler, NULL, true);
+    send_data(uri_base, path, (void *)payload, strlen(payload), pair_resp_handler, (void*)pairing_thread_pid, true);
 }
 
 void *pairing_blink_routine(void *args)
@@ -163,80 +186,100 @@ void *not_connected_blink_routine(void *args)
     (void)args;
 
     printf("START NOT CONNECTED BLINK\n");
-    
+
     while (buzzer_not_connected_mode)
     {
         gpio_toggle(led1);
         ztimer_sleep(ZTIMER_MSEC, BUZZER_NOT_CONNECTED_BLINK_DELAY_MS);
     }
+
     printf("STOPPED NOT CONNECTED BLINK\n");
 
     return 0;
 }
 
-
-void start_not_conn_blink_thread(void){
+void start_not_conn_blink_thread(void)
+{
     buzzer_not_connected_mode = true;
     thread_create(buzzer_blink_thread_stack, sizeof(buzzer_blink_thread_stack),
-                THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
-                not_connected_blink_routine, NULL, "not_conn_pairing_thread");
+                  THREAD_PRIORITY_MAIN - 2, THREAD_CREATE_STACKTEST,
+                  not_connected_blink_routine, NULL, "not_conn_pairing_thread");
 }
-
 
 void *pairing_mode_routine(void *args)
 {
     (void)args;
+    kernel_pid_t *main_thread_pid = (kernel_pid_t *)args;
+    msg_t msg;
 
     buzzer_pairing_mode = true;
 
+    kernel_pid_t own_pid = thread_getpid();
+
     thread_create(buzzer_pairing_blink_thread_stack, sizeof(buzzer_pairing_blink_thread_stack),
-                  THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
+                  THREAD_PRIORITY_MAIN - 3, THREAD_CREATE_STACKTEST,
                   pairing_blink_routine, NULL, "blink_thread");
 
+
+    //TODO: not use buzzer_paired to check if pairing mode is done
     int attemps = MAX_PAIRING_ATTEMPS;
-    while (!buzzer_paired && attemps != 0)
+    while (buzzer_pairing_mode && attemps != 0)
     {
         printf("PAIRING MODE!!\n");
         buzzer_pairing_mode_timeout = false;
-        send_pair_request();
-        while (!buzzer_paired && !buzzer_pairing_mode_timeout)
-        {
-            ztimer_sleep(ZTIMER_MSEC, 100);
-        }
+        send_pair_request(&own_pid);
+        // while (!buzzer_paired && !buzzer_pairing_mode_timeout)
+        // {
+        //     ztimer_sleep(ZTIMER_MSEC, 100);
+        // }
+        thread_sleep();
         attemps--;
     }
-    buzzer_pairing_mode = false;
+    // buzzer_pairing_mode = false;
 
-    if(!buzzer_paired){
-        start_not_conn_blink_thread();
-    }else{
+    if (buzzer_pairing_mode_timeout)
+    {
+        msg.content.value = MODE_NOT_CONNECTED;
         
     }
-
+    else
+    {
+        msg.content.value = MODE_LOCKED;
+    }
+    msg_send(&msg, *main_thread_pid);
 
     return 0;
 }
 
+void start_pairing_routine(kernel_pid_t *main_thread_pid)
+{
+    buzzer_not_connected_mode = false;
+
+    thread_create(buzzer_pairing_thread_stack, sizeof(buzzer_pairing_thread_stack),
+                  THREAD_PRIORITY_MAIN - 2, 0,
+                  pairing_mode_routine, (void *)main_thread_pid, "pairing_thread");
+}
+
 void long_press_callback(void *args)
 {
-    (void)args;
+    (void)args;    
+    kernel_pid_t *main_thread_pid = (kernel_pid_t *)args;
+    msg_t msg;
+    msg.content.value = MODE_PAIRING;
 
     mutex_lock(&led1_mutex);
     switch_activated = false;
     mutex_unlock(&led1_mutex);
 
     printf("LONG PRESS REGISTERED!\n");
-    
-    buzzer_not_connected_mode = false;
 
-    thread_create(buzzer_pairing_thread_stack, sizeof(buzzer_pairing_thread_stack),
-                  THREAD_PRIORITY_MAIN - 2, THREAD_CREATE_STACKTEST,
-                  pairing_mode_routine, NULL, "pairing_thread");
+    msg_send(&msg, *main_thread_pid);
 }
 
 static void btn_callback(void *args)
 {
     (void)args;
+    // kernel_pid_t *main_thread_pid = (kernel_pid_t *)args;
 
     ztimer_acquire(ZTIMER_MSEC);
     ztimer_now_t cur_ts = ztimer_now(ZTIMER_MSEC);
@@ -244,8 +287,11 @@ static void btn_callback(void *args)
 
     int state = gpio_read(btn);
 
+
+    printf("PRESS CHECK: %d, %d\n",buzzer_paired, buzzer_locked);
+
     /* if buzzer is not locked */
-    if (!buzzer_paired && !buzzer_pairing_mode)
+    if (!buzzer_paired && !buzzer_locked)
     {
         /* if HASN'T been pressed yet but pressed now and outside of the debounce window */
         if ((!switch_activated && state == BUZZER_ACTIVE_STATE) && (cur_ts - btn_debounce_ts >= PAIRING_MODE_DEBOUNCE_TIME_MS))
@@ -273,33 +319,26 @@ static void btn_callback(void *args)
     {
         mutex_lock(&led1_mutex);
 
-        gpio_toggle(led1);
         printf("BUZZER %d!\n", state);
+        lock_buzzer();
         send_buzzer_pressed();
-
-        // buzzer_locked = true;
-
-        // send_test_data();
 
         mutex_unlock(&led1_mutex);
         btn_debounce_ts = cur_ts;
     }
 }
 
-
-void init_buzzer_periph(void)
+void init_buzzer_periph(kernel_pid_t *main_thread_pid)
 {
+
     // unsigned int btn = BTN0_PIN;
     // unsigned int led1 = LED0_PIN;
 
     gpio_init(led1, GPIO_OUT);
-    gpio_init_int(btn, GPIO_IN_PU, GPIO_BOTH, btn_callback, NULL);
+    gpio_init_int(btn, GPIO_IN_PU, GPIO_BOTH, btn_callback, (void *)main_thread_pid);
 
     long_press_timer.callback = long_press_callback;
-
-    start_not_conn_blink_thread();
-
-    
+    long_press_timer.arg = (void*) main_thread_pid;
 }
 
 void get_iso8601_time(char *buffer, size_t buffer_size)
@@ -340,22 +379,29 @@ ssize_t _buzzer_reset_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_re
     (void)pdu;
     (void)buf;
     (void)len;
-    (void)ctx;
 
-    mutex_lock(&buzzer_mutex);
-    buzzer_locked = false;
-    mutex_unlock(&buzzer_mutex);
+  
+    kernel_pid_t *main_thread_pid = (kernel_pid_t *) ctx->resource->context;
+    msg_t msg;
+
+    msg.content.value = MODE_NORMAL;
+
+    msg_send(&msg, *main_thread_pid);
 
     return coap_reply_simple(pdu, COAP_CODE_CHANGED, buf, len, 0, NULL, 0);
 }
 
-void init_buzzer_resources(void)
+void init_buzzer_resources(kernel_pid_t* main_thread_pid)
 {
     // snprintf(&_resource_uris[0][0], CONFIG_URI_MAX,"%s/reset",BUZZER_URI_BASE)
+
+    printf("I RESET: %d\n",*main_thread_pid);
+
 
     _buzzer_resources[0].path = BUZZER_RESET_URI;
     _buzzer_resources[0].methods = COAP_PUT;
     _buzzer_resources[0].handler = _buzzer_reset_handler;
+    _buzzer_resources[0].context = (void*) main_thread_pid;
     buzzer_resource_count++;
 
     _buzzer_listener.resources = &_buzzer_resources[0];
@@ -368,7 +414,7 @@ void init_buzzer_resources(void)
     gcoap_register_listener(&_buzzer_listener);
 }
 
-int init_buzzer(void)
+int init_buzzer(kernel_pid_t *main_thread_pid)
 {
 
     char *server_ip = "[2001:67c:254:b0b2:affe:4000:0:1]:123";
@@ -388,14 +434,13 @@ int init_buzzer(void)
         printf("[Error] Couldn't sync with sntp server: %d!", sntp_conn);
         return -1;
     }
-    printf("SNTP Sync: %d, %d\n", sntp_conn, attempts);
+    printf("[INFO] SNTP Sync: %d, %d\n", sntp_conn, attempts);
 
     if (!init_done)
     {
-        init_buzzer_resources();
-        init_buzzer_periph();
+        init_buzzer_resources(main_thread_pid);
+        init_buzzer_periph(main_thread_pid);
         init_done = true;
-        printf("INIT DONE \n");
     }
 
     return 0;
