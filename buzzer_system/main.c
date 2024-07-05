@@ -72,23 +72,11 @@ static const shell_command_t shell_commands[] = {
 };
 
 
-//TODO: create main thread which is in charge of the modes
-//      Mode 0 NOT_CONN: start blink thread
-//             => When long_press recognized -> MSG to main thread (mode 1)
-//      Mode 1 PAIRING: start pairing and pairing blink thread
-//             => if failed -> MSG to main thread (Mode 0)
-//             => if succeded -> MSG to main thread (Mode 3)
-//      Mode 2 NORMAL: normal buzzer behaviour
-//             => If coap request fail -> MSG to main thread (mode 0) 
-//             => Buzzer pressed -> MSG to main thread (mode 3) 
-//      Mode 3 LOCKED: buzzer is locked
-//             => If coap request fail -> MSG to main thread (mode 0) 
-//             => buzzer reset received -> MSG to main thread (mode 2) 
 
 
 
 void not_connected_mode(void){
-    start_not_conn_blink_thread();
+    enable_not_connected_mode();
 }
 
 void pairing_mode(void){
@@ -96,6 +84,7 @@ void pairing_mode(void){
 }
 
 void normal_mode(void){
+    set_connection_status(true);
     enable_normal_mode();
 }
 
@@ -103,10 +92,24 @@ void locked_mode(void){
     lock_buzzer();
 }
 
+/**
+ * @brief main control routine for switching between modes.
+ * 
+ * Mode description:
+ *  | Mode 0 NOT_CONNECTED: start blink thread.
+ *      => When long_press recognized -> MSG to main thread (mode 1);
+ *  | Mode 1 PAIRING: start pairing and pairing blink thread.
+ *      => if failed -> MSG to main thread (Mode 0);
+ *      => if succeded -> MSG to main thread (Mode 3);
+ *  | Mode 2 NORMAL: normal buzzer behaviour.
+ *      => If coap request fail -> MSG to main thread (mode 0);
+ *      => Buzzer pressed -> MSG to main thread (mode 3);
+ *  | Mode 3 LOCKED: buzzer is locked.  
+ *      => If coap request fail -> MSG to main thread (mode 0);
+ *      => buzzer reset received -> MSG to main thread (mode 2);
+ */
 void* main_routine(void* args){
     (void) args;
-    
-
     
     
     msg_init_queue(rcv_queue, RCV_QUEUE_SIZE);
@@ -122,22 +125,26 @@ void* main_routine(void* args){
         switch(mode){
             case MODE_NOT_CONNECTED: 
                 not_connected_mode();
+                printf("[INFO] Mode: NOT_CONNECTED");
                 break;
             case MODE_PAIRING: 
                 pairing_mode();
+                printf("[INFO] Mode: PAIRING");
                 break;
             case MODE_NORMAL: 
+                printf("[INFO] Mode: NORMAL");
                 normal_mode();
                 break;
             case MODE_LOCKED: 
+                printf("[INFO] Mode: LOCKED");
                 locked_mode();
                 break;
             default:
+                printf("[INFO] Mode: NOT_CONNECTED");
                 not_connected_mode();
         }
 
         msg_receive(&msg);
-        printf("Received %" PRIu32 "\n", msg.content.value);
         mode = msg.content.value;
 
     }
@@ -149,11 +156,9 @@ int main(void)
     msg_init_queue(_main_msg_queue, MAIN_QUEUE_SIZE);
 
     
-    // init_buzzer();
     rcv_pid = thread_create(main_routine_stack, sizeof(main_routine_stack),
                         THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_SLEEPING, main_routine, NULL, "main_thread");
 
-    printf("MAIN: %d\n",rcv_pid);
 
     thread_wakeup(rcv_pid);
     

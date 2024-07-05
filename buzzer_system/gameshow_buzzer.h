@@ -24,4 +24,8 @@ void disble_normal_mode(void);
 void lock_buzzer(void);
 void unlock_buzzer(void);
 
+
+void enable_not_connected_mode(void);
+void set_connection_status(bool connected);
+
 #endif /* GAMESHOW_BUZZER_H */
