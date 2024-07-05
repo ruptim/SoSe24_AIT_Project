@@ -61,18 +61,25 @@ else
   endif
 endif
 
-
 # Modules to include:
 USEMODULE += shell
 USEMODULE += shell_cmds_default
 USEMODULE += ps
 USEMODULE += gcoap
-USEMODULE += ztimer
-USEMODULE += ztimer_msec
-USEMODULE += sntp
+USEMODULE += cord_ep
+# Run the simple CoRE resource directory
+USEMODULE += cord_epsim
 
 # include and auto-initialize all available sensors
 USEMODULE += saul_default
+USEMODULE += shell_cmds_default
+USEMODULE += uri_parser
+USEMODULE += od
+USEMODULE += xtimer
+USEMODULE += timex
+USEMODULE += sntp
+
+USEMODULE += periph_gpio_irq
 
 include $(RIOTBASE)/tests/Makefile.boards.netif
 ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
@@ -91,9 +98,7 @@ endif
 
 
 
-USEMODULE += periph_gpio_irq
 FEATURES_OPTIONAL += periph_rtc
-
 
 ifneq (,$(filter msba2,$(BOARD)))
   USEMODULE += mci
@@ -111,5 +116,23 @@ ifneq (,$(filter $(BOARD),$(BOARD_PROVIDES_NETIF)))
   endif
 endif
 
+DEFAULT_CHANNEL ?= 24
+
 # Set a custom channel if needed
 include $(RIOTMAKE)/default-radio-settings.inc.mk
+
+CFLAGS +="-DCONFIG_IEEE802154_DEFAULT_CHANNEL=24"
+
+RD_ADDR ?= \"[fe80::3867:9b25:ae2:ea8b]\" 
+# RD_ADDR ?= \"[ff02:fe]\" 
+CFLAGS += -DRD_ADDR=$(RD_ADDR)
+
+ifeq ($(BOARD),pba-d-01-kw2x)
+  CFLAGS += "-DCONFIG_CORD_EP=\"RIOT-RASPI-4-NODE\""
+else ifeq ($(BOARD),feather-nrf52840-sense)
+  CFLAGS += "-DCONFIG_CORD_EP=\"RIOT-RASPI-4-NODE-FEATHER\""
+endif
+
+CFLAGS += -DCONFIG_GNRC_IPV6_NIB_SLAAC=1
+CFLAGS += -DCONFIG_GNRC_IPV6_NIB_6LBR=1
+CFLAGS += -DREUSE_TAP=1
