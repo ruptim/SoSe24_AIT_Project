@@ -34,6 +34,7 @@
 #define MAX_PAIRING_ATTEMPS 1
 
 #define PAIRING_MODE_PRESS_DELAY_MS 2000
+#define RE_PAIRING_MODE_PRESS_DELAY_MS 5000
 #define PAIRING_MODE_DEBOUNCE_TIME_MS 10
 #define PAIRING_MODE_TIMEOUT_TIME_MS 5000
 #define TIME_ZONE_OFFSET_HOUR 2
@@ -47,6 +48,7 @@ uint8_t buzzer_resource_count = 0;
 gcoap_listener_t _buzzer_listener;
 
 ztimer_now_t btn_debounce_ts;
+ztimer_now_t btn_long_press_debounce_ts;
 ztimer_t timer;
 mutex_t led1_mutex = MUTEX_INIT;
 
@@ -319,10 +321,6 @@ void long_press_callback(void *args)
     msg_t msg;
     msg.content.value = MODE_PAIRING;
 
-    mutex_lock(&led1_mutex);
-    switch_activated = false;
-    mutex_unlock(&led1_mutex);
-
     DEBUG("LONG PRESS REGISTERED!\n");
 
     msg_send(&msg, *main_thread_pid);
@@ -341,34 +339,35 @@ static void btn_callback(void *args)
 
     int state = gpio_read(btn);
 
-    DEBUG("PRESS CHECK: %d, %d\n", buzzer_paired, buzzer_locked);
+    DEBUG("PRESS CHECK: %d, %d, %d, %d\n", buzzer_paired, buzzer_locked, state, switch_activated);
 
-    /* if buzzer is not locked */
-    if (!buzzer_paired && !buzzer_pairing_mode && !buzzer_locked)
+    if (!buzzer_pairing_mode)
     {
         /* if HASN'T been pressed yet but pressed now and outside of the debounce window */
-        if ((!switch_activated && state == BUZZER_ACTIVE_STATE) && (cur_ts - btn_debounce_ts >= PAIRING_MODE_DEBOUNCE_TIME_MS))
+        if ((!switch_activated && state == BUZZER_ACTIVE_STATE) && (cur_ts - btn_long_press_debounce_ts >= PAIRING_MODE_DEBOUNCE_TIME_MS))
         {
 
             DEBUG("LONG PRESS START\n");
-            ztimer_set(ZTIMER_MSEC, &long_press_timer, PAIRING_MODE_PRESS_DELAY_MS);
+            ztimer_set(ZTIMER_MSEC, &long_press_timer, !buzzer_paired ? PAIRING_MODE_PRESS_DELAY_MS : RE_PAIRING_MODE_PRESS_DELAY_MS);
             mutex_lock(&led1_mutex);
             switch_activated = true;
             mutex_unlock(&led1_mutex);
             switch_activated = true;
-            btn_debounce_ts = cur_ts;
+            btn_long_press_debounce_ts = cur_ts;
         }
         /* if HAS been pressed but released now and outside of the debounce window */
-        else if ((switch_activated && state == BUZZER_PASSIV_STATE) && (cur_ts - btn_debounce_ts >= PAIRING_MODE_DEBOUNCE_TIME_MS))
+        else if ((switch_activated && state == BUZZER_PASSIV_STATE) && (cur_ts - btn_long_press_debounce_ts >= PAIRING_MODE_DEBOUNCE_TIME_MS))
         {
             DEBUG("LONG PRESS END\n");
             mutex_lock(&led1_mutex);
             switch_activated = false;
             mutex_unlock(&led1_mutex);
             ztimer_remove(ZTIMER_MSEC, &long_press_timer);
+            btn_long_press_debounce_ts = cur_ts;
         }
     }
-    else if (buzzer_paired && !buzzer_locked && (cur_ts - btn_debounce_ts >= DEBOUNCE_DELAY_MS))
+    /* if buzzer is paired and not locked and outside of the debounce window */
+    if (buzzer_paired && !buzzer_locked && (cur_ts - btn_debounce_ts >= DEBOUNCE_DELAY_MS))
     {
         mutex_lock(&led1_mutex);
 
