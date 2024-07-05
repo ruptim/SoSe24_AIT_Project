@@ -111,7 +111,6 @@ void enable_not_connected_mode(void)
 void disable_normal_mode(void)
 {
     lock_buzzer();
-    // buzzer_paired = false; //TODO: does not fit here
 }
 
 void set_connection_status(bool connected)
@@ -270,7 +269,6 @@ void *pairing_mode_routine(void *args)
     (void)args;
     kernel_pid_t *main_thread_pid = (kernel_pid_t *)args;
     msg_t msg;
-    // timer_t timeout_timer;
 
     buzzer_pairing_mode = true;
 
@@ -280,22 +278,16 @@ void *pairing_mode_routine(void *args)
                   THREAD_PRIORITY_MAIN - 3, THREAD_CREATE_STACKTEST,
                   pairing_blink_routine, NULL, "blink_thread");
 
-    // TODO: not use buzzer_paired to check if pairing mode is done
     int attemps = MAX_PAIRING_ATTEMPS;
     while (buzzer_pairing_mode && attemps != 0)
     {
         DEBUG("PAIRING MODE!!\n");
         buzzer_pairing_mode_timeout = false;
         send_pair_request(&own_pid);
-        // while (!buzzer_paired && !buzzer_pairing_mode_timeout)
-        // {
-        //     ztimer_sleep(ZTIMER_MSEC, 100);
-        // }
-        // ztimer_set_wakeup(ZTIMER_MSEC, )
+
         thread_sleep();
         attemps--;
     }
-    // buzzer_pairing_mode = false;
 
     if (buzzer_pairing_mode_timeout)
     {
