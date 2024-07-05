@@ -83,12 +83,12 @@ void pairing_mode(void){
     start_pairing_routine(&rcv_pid);
 }
 
-void normal_mode(void){
-    set_connection_status(true);
+void normal_mode(void){    
     enable_normal_mode();
 }
 
 void locked_mode(void){
+    set_connection_status(true);
     lock_buzzer();
 }
 
@@ -125,22 +125,22 @@ void* main_routine(void* args){
         switch(mode){
             case MODE_NOT_CONNECTED: 
                 not_connected_mode();
-                printf("[INFO] Mode: NOT_CONNECTED");
+                printf("[INFO] Mode: NOT_CONNECTED\n");
                 break;
             case MODE_PAIRING: 
                 pairing_mode();
-                printf("[INFO] Mode: PAIRING");
+                printf("[INFO] Mode: PAIRING\n");
                 break;
             case MODE_NORMAL: 
-                printf("[INFO] Mode: NORMAL");
+                printf("[INFO] Mode: NORMAL\n");
                 normal_mode();
                 break;
             case MODE_LOCKED: 
-                printf("[INFO] Mode: LOCKED");
+                printf("[INFO] Mode: LOCKED\n");
                 locked_mode();
                 break;
             default:
-                printf("[INFO] Mode: NOT_CONNECTED");
+                printf("[INFO] Mode: NOT_CONNECTED\n");
                 not_connected_mode();
         }
 

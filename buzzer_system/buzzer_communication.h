@@ -4,6 +4,8 @@
 #ifndef CONFIG_URI_MAX
 #define CONFIG_URI_MAX      128
 #endif
+
+#define MAX_PUT_PAYLOAD_LEN 64
  
 #include "net/gcoap.h"
 #include "net/sock/util.h"
