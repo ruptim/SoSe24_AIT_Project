@@ -15,6 +15,7 @@ import asyncio
 
 import aiocoap.resource as resource
 from aiocoap.numbers.contentformat import ContentFormat
+from aiocoap import *
 import aiocoap
 
 import aiocoap.resourcedirectory.client.register  as rd_register
@@ -95,28 +96,39 @@ class ButtonRegisterResource(resource.Resource):
     def __init__(self):
         super().__init__()
 
-    def register_device(self, request):
-        payload = request.payload.decode('ascii')        
-        if device_status_map.get(payload):
-            return aiocoap.Message(code=aiocoap.BAD_REQUEST,payload="Name already in use!".encode("ascii"))    
-
-
+    def send_registered_name(self,ep):
+        device_count = len(device_status_map)
+        register_name = f"buzzer{device_count}"
         
-        device_status_map[payload] = {
-            'endpoint': request.remote.uri_base,
+        device_status_map[register_name] = {
+            'endpoint': ep,
             'register_time': datetime.now(),
             'ts_queue': asyncio.Queue(),
             'mutex': asyncio.locks.Lock()
 
         }
+        
+        return aiocoap.Message(code=aiocoap.CHANGED,payload=register_name.encode('ascii'))
 
-        return aiocoap.Message(code=aiocoap.CHANGED)
+    def register_device(self, request):
+        payload = request.payload.decode('ascii')
+        if len(payload): 
+            entry = device_status_map.get(payload)
+
+            # if the re-registration comes from the correct endpoint: accept
+            if entry and entry['endpoint'] == request.remote.uri_base:
+                return aiocoap.Message(code=aiocoap.CHANGED,payload="0".encode("ascii"))    
+
+            # if requested name is not found, send new one                 
+
+        return self.send_registered_name(request.remote.uri_base)
+
+            
 
     
     async def render_put(self, request):
         print('PUT payload: %s' % request.payload)
         return self.register_device(request)
-        
      
 
 class ButtonPressedResource(resource.Resource):
@@ -140,19 +152,22 @@ class ButtonPressedResource(resource.Resource):
         device_id = matches[0]
         time_stamp = datetime.fromisoformat(matches[1])
         
-        async with device_status_map[device_id]['mutex']:
-            await device_status_map[device_id]['ts_queue'].put(time_stamp)
+        if (device_status_map.get(device_id)):
+            async with device_status_map[device_id]['mutex']:
+                await device_status_map[device_id]['ts_queue'].put(time_stamp)
+        #TODO: else: send error response!! 
         
 
     async def render_put(self, request):
         print('PUT payload: %s' % request.payload)
         await self.set_content(request.payload.decode('ascii'))
+
         return aiocoap.Message(code=aiocoap.CHANGED)
 
 
 
 async def send_data(ctx,uri,payload):
-    request = aiocoap.Message(code=PUT, uri=uri,payload=payload)
+    request = aiocoap.Message(code=aiocoap.PUT, uri=uri,payload=payload)
     requester = ctx.request(request)
     resp = await requester.response
     return resp
@@ -161,10 +176,24 @@ async def send_data(ctx,uri,payload):
 async def reset_buzzers():
     ctx = await aiocoap.Context.create_client_context()
 
-    for device in device_status_map.values():
-        send_data(ctx, f"{device['ep']}/reset_buzzer",payload="1".encode('ascii'))
-        with device['ts_queue'].mutex:
-            device['ts_queue'].queue.clear()
+    to_remove = []
+
+
+    #todo: make each send a seperate task, so the resets are 'simultaneous'
+    for (key,device) in device_status_map.items():
+        try:
+            response = await send_data(ctx, f"{device['endpoint']}/buzzer/reset_buzzer",payload="")
+
+            async with device['mutex']:
+                device['ts_queue'] = asyncio.Queue()
+        # if response.code == CHANGED:
+        #     pass # success
+        except aiocoap.error.NetworkError:
+            to_remove.append(key)
+
+    for k in to_remove:
+        device_status_map.pop(k)       
+        print(f"REMOVED: {k}") 
 
 
 # logging setup
@@ -183,7 +212,7 @@ async def main():
     root.add_resource(['b','pressed'], ButtonPressedResource())
     root.add_resource(['b','register'], ButtonRegisterResource())
 
-    server_ctx = await aiocoap.Context.create_server_context(root,bind=("::",9993))
+    server_ctx = await Context.create_server_context(root,bind=("::",9993))
   
     RD = "coap://[2001:67c:254:b0b2:affe:4000:0:1]"
 
