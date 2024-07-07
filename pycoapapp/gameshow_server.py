@@ -11,6 +11,8 @@ for some more information."""
 from datetime import datetime
 import logging
 
+from threading import Thread
+
 import asyncio
 
 import aiocoap.resource as resource
@@ -24,6 +26,9 @@ from queue import Queue
 
 import re
 
+from nicegui import ui, app
+
+
 
 '''
         'dev_name':
@@ -32,30 +37,16 @@ import re
         }
 '''
 device_status_map = {}
+device_list = ui.row()
 
-
-class Welcome(resource.Resource):
-    representations = {
-            ContentFormat.TEXT: b"Welcome to the demo server",
-            ContentFormat.LINKFORMAT: b"</.well-known/core>,ct=40",
-            # ad-hoc for application/xhtml+xml;charset=utf-8
-            ContentFormat(65000):
-                b'<html xmlns="http://www.w3.org/1999/xhtml">'
-                b'<head><title>aiocoap demo</title></head>'
-                b'<body><h1>Welcome to the aiocoap demo server!</h1>'
-                b'<ul><li><a href="time">Current time</a></li>'
-                b'<li><a href="whoami">Report my network address</a></li>'
-                b'</ul></body></html>',
-            }
-
-    default_representation = ContentFormat.TEXT
-
-    async def render_get(self, request):
-        cf = self.default_representation if request.opt.accept is None else request.opt.accept
-        try:
-            return aiocoap.Message(payload=self.representations[cf], content_format=cf)
-        except KeyError:
-            raise aiocoap.error.UnsupportedContentFormat
+class status_label(ui.label):
+    def _handle_text_change(self, text: str) -> None:
+        # super()._handle_text_change(text)
+        if text == 'False':
+            self.style("color:green")
+        else:
+            self.style("color:red")
+    
 
 
 
@@ -100,13 +91,23 @@ class ButtonRegisterResource(resource.Resource):
         device_count = len(device_status_map)
         register_name = f"buzzer{device_count}"
         
+        l = None        
+        with device_list:
+            l = status_label(register_name)
+            
+            l.style('color:red')
+
         device_status_map[register_name] = {
             'endpoint': ep,
             'register_time': datetime.now(),
             'ts_queue': asyncio.Queue(),
-            'mutex': asyncio.locks.Lock()
+            'mutex': asyncio.locks.Lock(),
+            'label': l,
+            "locked": "True"
 
         }
+        l.bind_text_from(device_status_map[register_name],'locked')
+        
         
         return aiocoap.Message(code=aiocoap.CHANGED,payload=register_name.encode('ascii'))
 
@@ -155,6 +156,7 @@ class ButtonPressedResource(resource.Resource):
         if (device_status_map.get(device_id)):
             async with device_status_map[device_id]['mutex']:
                 await device_status_map[device_id]['ts_queue'].put(time_stamp)
+                device_status_map[device_id]['locked'] = "True"
         #TODO: else: send error response!! 
         
 
@@ -186,6 +188,8 @@ async def reset_buzzers():
 
             async with device['mutex']:
                 device['ts_queue'] = asyncio.Queue()
+                # device['label'].style('color:green')
+                device['locked'] = "False"
         # if response.code == CHANGED:
         #     pass # success
         except aiocoap.error.NetworkError:
@@ -223,5 +227,15 @@ async def main():
     # Run forever
     await asyncio.get_running_loop().create_future()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+
+
+if __name__ in {"__main__", "__mp_main__"}:
+    # asyncio.run(main()) ## to run without ui 
+
+
+    ui.button('Reset buzzers', on_click=reset_buzzers)
+
+    app.on_startup(main)
+
+    ui.run(host="192.168.69.111",port=9080)
+
