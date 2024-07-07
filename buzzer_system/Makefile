@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = ait_project
+APPLICATION = buzzer_system
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
@@ -136,5 +136,3 @@ endif
 CFLAGS += -DCONFIG_GNRC_IPV6_NIB_SLAAC=1
 CFLAGS += -DCONFIG_GNRC_IPV6_NIB_6LBR=1
 CFLAGS += -DREUSE_TAP=1
-# CFLAGS += -DCONFIG_GCOAP_OBS_VALUE_WIDTH=1
-

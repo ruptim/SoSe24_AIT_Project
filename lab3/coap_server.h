@@ -6,9 +6,10 @@
 #define CONFIG_URI_MAX 128
 
 
-#define URI_BASE "/b/"
+#define URI_BASE "/b/" 
 #define MAX_PUT_PAYLOAD_LEN 11
 #define MAX_GET_PAYLOAD_LEN 128
+#define MAX_LINK_LENGTH 10
 
 extern coap_resource_t _resources[MAX_RESOURCES];
 extern char _resource_uris[MAX_RESOURCES][CONFIG_URI_MAX];
@@ -25,8 +26,10 @@ int get_rgb_values(short int *states, char* payload);
 
 int init_board_periph_resources(void);
 
+void notify_observers(void);
 
-
+ssize_t _encode_link(const coap_resource_t *resource, char *buf,
+                            size_t maxlen, coap_link_encoder_ctx_t *context);
 
 /*
  *   Handler for coap requests to read sensors or drive actuators via SAUL.

@@ -4,7 +4,7 @@
 #ifndef CONFIG_URI_MAX
 #define CONFIG_URI_MAX      128
 #endif
-
+ 
 #include "net/gcoap.h"
 #include "net/sock/util.h"
 
@@ -32,5 +32,10 @@ gcoap_socket_type_t _get_tl(const char *uri);
 
 void _resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t* pdu,
                           const sock_udp_ep_t *remote);
+
+
+void send_data(const char* uri_base, const char* path, const void* payload,
+                    size_t payload_len, gcoap_resp_handler_t resp_handler, 
+                    void* context);
 
 #endif /* COAP_CLIENT_H */
