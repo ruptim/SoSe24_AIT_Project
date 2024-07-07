@@ -1,13 +1,15 @@
-'use client';
+"use client";
 
-import {Button} from "@nextui-org/button";
+import { Button } from "@nextui-org/button";
 
 type BuzzerResetButtonParams = {
-    onResetClick: () => void
-}
+  onResetClick: () => void;
+};
 
-export function BuzzerResetButton({onResetClick}: BuzzerResetButtonParams){
-    return (
-        <Button color="danger" onClick={onResetClick}>Reset All</Button>
-    )
+export function BuzzerResetButton({ onResetClick }: BuzzerResetButtonParams) {
+  return (
+    <Button color="danger" onClick={onResetClick}>
+      Reset All
+    </Button>
+  );
 }
