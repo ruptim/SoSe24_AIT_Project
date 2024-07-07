@@ -56,7 +56,7 @@ export function EditBuzzersButton({
               className="relative flex items-center gap-2"
               onClick={(event) => onDeleteClick(item)}
             >
-              <Tooltip color="danger" content="Delete user">
+              <Tooltip color="danger" content="Delete Buzzer">
                 <span className="text-lg text-danger cursor-pointer active:opacity-50">
                   <DeleteIcon />
                 </span>

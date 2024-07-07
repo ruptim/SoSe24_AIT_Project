@@ -14,7 +14,6 @@ type ManagementContainerParams = {
 
 export function ManagementContainer({ buzzers, newBuzzers, onBuzzerDelete }: ManagementContainerParams) {
   const [isPairing, setPairing] = useState(false);
-  const [buzzerArr, setBuzzerArr] = useState<BuzzerType[]>(buzzers);
   const [newBuzzerArr, setNewBuzzerArr] = useState<BuzzerType[]>(newBuzzers);
 
   function connectModalOpened() {
@@ -63,7 +62,7 @@ export function ManagementContainer({ buzzers, newBuzzers, onBuzzerDelete }: Man
         onModalClosed={connectModalClosed}
         onOpenClicked={connectModalOpened}
       />
-      <EditBuzzersButton buzzers={buzzerArr} onDeleteClick={deleteBuzzer} />
+      <EditBuzzersButton buzzers={buzzers} onDeleteClick={deleteBuzzer} />
     </div>
   );
 }
