@@ -3,4 +3,4 @@ import {backendConfig} from "@/config/backend-config";
 
 const URL = backendConfig.hostUrl
 
-export const socket = io(URL);
+export const socket= io(URL);

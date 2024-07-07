@@ -6,19 +6,25 @@ import {QuestionContainer} from "@/app/game/question/question-container";
 import {ActivityContainer} from "@/app/game/activity/activity-container";
 import {BuzzerType, QuestionType} from "@/app/game/types/game-types";
 import {useEffect, useState} from "react";
-import {socket} from "@/app/socket";
+import { socket} from "@/app/socket";
 import {backendConfig} from "@/config/backend-config";
 import {ConnectionContainer} from "@/app/game/connection/connection-container";
+import {Button} from "@nextui-org/button";
+import {Socket} from "socket.io-client";
+import {DefaultEventsMap} from "@socket.io/component-emitter";
 
 export default function GamePage() {
-  const [isConnected, setIsConnected] = useState(socket.connected);
+  const [appSocket, setSocket] = useState< Socket<DefaultEventsMap, DefaultEventsMap>>(socket)
+  const [isConnected, setIsConnected] = useState(appSocket.connected);
   const [buzzers, setBuzzers] = useState<BuzzerType[]>([]);
   const [newBuzzers, setNewBuzzers] = useState<BuzzerType[]>([]);
 
   useEffect(() => {
+
     function onConnect() {
       setIsConnected(true);
       console.log('Connected');
+      // socket.emit(backendConfig.events.connect);
     }
 
     function onDisconnect() {
@@ -26,11 +32,17 @@ export default function GamePage() {
       console.log('Disconnected');
     }
 
-    function onBuzzerUpdate(receivedBuzzers: BuzzerType[]) {
-      console.log('Received buzzers: ' + receivedBuzzers);
-      // TODO if newly connected buzzers are being sent one by one, use an own event for new buzzers. If not, only one (aka the latest) buzzer is being stored
-      setNewBuzzers(filterDifferentBuzzers(buzzers, receivedBuzzers));
-      setBuzzers(receivedBuzzers);
+    function onBuzzerUpdate(receivedBuzzersString: string) {
+      try{
+        let receivedBuzzers: BuzzerType[] = JSON.parse(receivedBuzzersString);
+        console.log('Received buzzers: ');
+        console.log(receivedBuzzers)
+        // TODO if newly connected buzzers are being sent one by one, use an own event for new buzzers. If not, only one (aka the latest) buzzer is being stored
+        setNewBuzzers(filterDifferentBuzzers(buzzers, receivedBuzzers));
+        setBuzzers(receivedBuzzers);
+      } catch (e){
+
+      }
     }
 
     function filterDifferentBuzzers(currentBuzzers: BuzzerType[], newBuzzers: BuzzerType[]): BuzzerType[] {
@@ -45,10 +57,14 @@ export default function GamePage() {
     socket.on(backendConfig.events.disconnect, onDisconnect);
     socket.on(backendConfig.events.buzzers, onBuzzerUpdate);
 
+   socket.connect();
+   setIsConnected(appSocket.connected);
+
     return () => {
       socket.off(backendConfig.events.connect, onConnect);
       socket.off(backendConfig.events.disconnect, onDisconnect);
       socket.off(backendConfig.events.buzzers, onBuzzerUpdate);
+      socket.close()
     };
   }, []);
 
