@@ -8,6 +8,7 @@ import {BuzzerType, QuestionType} from "@/app/game/types/game-types";
 import {useEffect, useState} from "react";
 import {socket} from "@/app/socket";
 import {backendConfig} from "@/config/backend-config";
+import {ConnectionContainer} from "@/app/game/connection/connection-container";
 
 export default function GamePage() {
   const [isConnected, setIsConnected] = useState(socket.connected);
@@ -98,10 +99,13 @@ export default function GamePage() {
   ];
 
   return (
-    <div className="w-full max-w-screen-md min-w-full">
+    <div className="w-full max-w-screen-md min-w-full flex flex-col">
       <QuestionContainer questions={questions}/>
       <Divider className={"mt-5 mb-5"}/>
       <ActivityContainer buzzers={buzzers} newBuzzers={newBuzzers}/>
+      <div className="self-end">
+        <ConnectionContainer isConnected={isConnected}></ConnectionContainer>
+      </div>
     </div>
   );
 }
