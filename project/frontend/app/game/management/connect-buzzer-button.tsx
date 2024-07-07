@@ -62,7 +62,7 @@ export function ConnectBuzzerButton({
                   <>
                     <Divider className={"mt-2 mb-2"} />
                     <p>
-                      New Buzzer{buzzersShown.length > 1 ? "s" : ""} connected:
+                      Connected Buzzer{buzzersShown.length > 1 ? "s" : ""}:
                     </p>
                     <div
                       className={

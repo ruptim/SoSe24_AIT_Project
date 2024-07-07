@@ -11,10 +11,9 @@ import {backendConfig} from "@/config/backend-config";
 
 type ActivityParams = {
   buzzers: BuzzerType[],
-  newBuzzers: BuzzerType[],
 };
 
-export function ActivityContainer({ buzzers, newBuzzers}: ActivityParams) {
+export function ActivityContainer({ buzzers}: ActivityParams) {
   const [isLocked, setLocked] = useState(false);
   // const [buzzerArr, setBuzzerArr] = useState<BuzzerType[]>(buzzerList);
 
@@ -50,7 +49,7 @@ export function ActivityContainer({ buzzers, newBuzzers}: ActivityParams) {
         onResetClick={handleResetClick}
       />
       <Divider className={"mt-5 mb-5"} />
-      <ManagementContainer buzzers={buzzers} onBuzzerDelete={handleBuzzerDelete} newBuzzers={newBuzzers}/>
+      <ManagementContainer buzzers={buzzers} onBuzzerDelete={handleBuzzerDelete}/>
     </div>
   );
 }

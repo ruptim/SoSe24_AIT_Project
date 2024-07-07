@@ -17,7 +17,6 @@ export default function GamePage() {
   const [appSocket, setSocket] = useState< Socket<DefaultEventsMap, DefaultEventsMap>>(socket)
   const [isConnected, setIsConnected] = useState(appSocket.connected);
   const [buzzers, setBuzzers] = useState<BuzzerType[]>([]);
-  const [newBuzzers, setNewBuzzers] = useState<BuzzerType[]>([]);
 
   useEffect(() => {
 
@@ -35,22 +34,10 @@ export default function GamePage() {
     function onBuzzerUpdate(receivedBuzzersString: string) {
       try{
         let receivedBuzzers: BuzzerType[] = JSON.parse(receivedBuzzersString);
-        console.log('Received buzzers: ');
-        console.log(receivedBuzzers)
-        // TODO if newly connected buzzers are being sent one by one, use an own event for new buzzers. If not, only one (aka the latest) buzzer is being stored
-        setNewBuzzers(filterDifferentBuzzers(buzzers, receivedBuzzers));
         setBuzzers(receivedBuzzers);
       } catch (e){
-
+        console.error(e)
       }
-    }
-
-    function filterDifferentBuzzers(currentBuzzers: BuzzerType[], newBuzzers: BuzzerType[]): BuzzerType[] {
-      // Create a Set to store unique IDs from array1
-      const idSet = new Set(currentBuzzers.map(buzzer => buzzer.buzzerId));
-
-      // Filter objects from array2 that have IDs not present in array1
-      return newBuzzers.filter(newBuzzer => !idSet.has(newBuzzer.buzzerId));
     }
 
     socket.on(backendConfig.events.connect, onConnect);
@@ -118,7 +105,7 @@ export default function GamePage() {
     <div className="w-full max-w-screen-md min-w-full flex flex-col">
       <QuestionContainer questions={questions}/>
       <Divider className={"mt-5 mb-5"}/>
-      <ActivityContainer buzzers={buzzers} newBuzzers={newBuzzers}/>
+      <ActivityContainer buzzers={buzzers}/>
       <div className="self-end">
         <ConnectionContainer isConnected={isConnected}></ConnectionContainer>
       </div>
