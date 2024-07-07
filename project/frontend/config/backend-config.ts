@@ -1,11 +1,12 @@
 export const backendConfig = {
-  hostname: "localhost",
-  port: 5000,
+  hostUrl: "http://localhost:5000",
   events: {
+    connect: "connect",
+    disconnect: "disconnect",
     buzzers: "buzzers",
-    update: "update",
     reset: "reset",
     lock: "lock",
     remove: "remove",
+    pairing: "pairing"
   },
 };

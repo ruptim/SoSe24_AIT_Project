@@ -6,38 +6,51 @@ import { useState } from "react";
 import { BuzzerContainer } from "@/app/game/buzzer/buzzer-container";
 import { ManagementContainer } from "@/app/game/management/management-container";
 import { BuzzerType } from "@/app/game/types/game-types";
+import {socket} from "@/app/socket";
+import {backendConfig} from "@/config/backend-config";
 
 type ActivityParams = {
-  buzzerList: BuzzerType[];
+  buzzers: BuzzerType[],
+  newBuzzers: BuzzerType[],
 };
 
-export function ActivityContainer({ buzzerList }: ActivityParams) {
+export function ActivityContainer({ buzzers, newBuzzers}: ActivityParams) {
   const [isLocked, setLocked] = useState(false);
-  const [buzzerArr, setBuzzerArr] = useState<BuzzerType[]>(buzzerList);
+  // const [buzzerArr, setBuzzerArr] = useState<BuzzerType[]>(buzzerList);
 
   function handleResetClick() {
-    buzzerArr.map((buzzer) => (buzzer.isPressed = false));
-    setBuzzerArr([...buzzerArr]);
+    // buzzerArr.map((buzzer) => (buzzer.isPressed = false));
+    // setBuzzerArr([...buzzerArr]);
+
+    console.log('Send reset');
+    socket.emit(backendConfig.events.reset);
   }
 
   function handleLockClick() {
-    let newLocked = !isLocked;
+    // let newLocked = !isLocked;
 
-    setLocked(newLocked);
-    buzzerArr.map((buzzer) => (buzzer.isLocked = newLocked));
-    setBuzzerArr(buzzerArr);
+    // setLocked(newLocked);
+    // buzzerArr.map((buzzer) => (buzzer.isLocked = newLocked));
+    // setBuzzerArr(buzzerArr);
+    console.log('Send lock');
+    socket.emit(backendConfig.events.lock);
+  }
+
+  function handleBuzzerDelete( buzzer: BuzzerType){
+    console.log('Send remove for ' + buzzer);
+    socket.emit(backendConfig.events.remove, buzzer);
   }
 
   return (
     <div>
       <BuzzerContainer
-        buzzers={buzzerArr}
+        buzzers={buzzers}
         isAllLocked={isLocked}
         onLockClick={handleLockClick}
         onResetClick={handleResetClick}
       />
       <Divider className={"mt-5 mb-5"} />
-      <ManagementContainer buzzers={buzzerArr} />
+      <ManagementContainer buzzers={buzzers} onBuzzerDelete={handleBuzzerDelete} newBuzzers={newBuzzers}/>
     </div>
   );
 }
