@@ -19,7 +19,8 @@
 
 #define MAX_RESOURCES 10
 #define CONFIG_URI_MAX 128
-#define BUZZER_RESET_URI "/buzzer/reset"
+#define BUZZER_RESET_URI "/buzzer/reset_buzzer"
+#define BUZZER_HEARTBEAT_URI "/buzzer/heartbeat"
 #define BUZZER_SERVER_PRESSED_URI "/b/pressed"
 #define BUZZER_SERVER_REGISTER_URI "/b/register"
 #define BUZZER_SERVER_RE_REGISTER_OK "0"
@@ -447,6 +448,13 @@ void init_buzzer_resources(kernel_pid_t *main_thread_pid)
     // snprintf(&_resource_uris[0][0], CONFIG_URI_MAX,"%s/reset",BUZZER_URI_BASE)
 
     DEBUG("I RESET: %d\n", *main_thread_pid);
+
+    _buzzer_resources[0].path = BUZZER_RESET_URI;
+    _buzzer_resources[0].methods = COAP_PUT;
+    _buzzer_resources[0].handler = _buzzer_reset_handler;
+    _buzzer_resources[0].context = (void *)main_thread_pid;
+    buzzer_resource_count++;
+
 
     _buzzer_resources[0].path = BUZZER_RESET_URI;
     _buzzer_resources[0].methods = COAP_PUT;
