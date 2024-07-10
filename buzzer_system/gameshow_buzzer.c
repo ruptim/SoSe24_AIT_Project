@@ -62,9 +62,14 @@ bool buzzer_locked = false;
 bool switch_activated = false;
 
 mutex_t buzzer_mutex = MUTEX_INIT;
-unsigned int btn = GPIO_PIN(PORT_A, 2);
 ztimer_t long_press_timer;
+#ifdef BOARD_FEATHER
+unsigned int btn = GPIO_PIN(0, 8);
+unsigned int led1 = GPIO_PIN(0, 6);
+#else 
+unsigned int btn = GPIO_PIN(PORT_A, 2);
 unsigned int led1 = GPIO_PIN(PORT_A, 1);
+#endif
 
 char buzzer_pairing_thread_stack[THREAD_STACKSIZE_DEFAULT];
 char buzzer_blink_thread_stack[THREAD_STACKSIZE_DEFAULT];
