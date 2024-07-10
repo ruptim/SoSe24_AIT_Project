@@ -17,17 +17,24 @@ export function QuestionContainer({ questions }: QuestionContainerParams) {
     questions[0],
   );
   let [currentCount, setCurrentCount] = useState(0);
+  let [isAnswerExpanded, setAnswerExpanded] = useState(false);
 
   function increaseCount() {
+    setAnswerExpanded(false);
     if (currentCount + 1 < maxQuestions) {
       setCurrentCount(currentCount + 1);
     }
   }
 
   function decreaseCount() {
+    setAnswerExpanded(false);
     if (currentCount) {
       setCurrentCount(currentCount - 1);
     }
+  }
+
+  function onAnswerExpansionChange(){
+    setAnswerExpanded(!isAnswerExpanded);
   }
 
   useEffect(() => {
@@ -39,6 +46,8 @@ export function QuestionContainer({ questions }: QuestionContainerParams) {
       <Question
         answer={currentQuestion.answer}
         question={currentQuestion.question}
+        isExpanded={isAnswerExpanded}
+        onExpansionChange={onAnswerExpansionChange}
       />
       <div className={"flex mt-10 mb-2 justify-center gap-5 w-full"}>
         <div className={"box-border w-1/4"}>
