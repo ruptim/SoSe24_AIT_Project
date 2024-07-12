@@ -8,6 +8,6 @@ enum MODES{
     MODE_NORMAL,
     MODE_LOCKED
 };
-
+ 
 
 #endif /* DEFINES_H */

@@ -5,8 +5,8 @@
 
 #define ENABLE_DEBUG 0
 #include "debug.h"
-
-
+ 
+ 
 
 void send_data(const char* uri_base, const char* path, const void* payload, size_t payload_len,
                     gcoap_resp_handler_t resp_handler, void* context, bool confirm){

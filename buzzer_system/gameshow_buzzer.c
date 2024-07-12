@@ -59,7 +59,7 @@ bool buzzer_not_connected_mode = true;
 bool buzzer_pairing_mode = false;
 bool buzzer_pairing_mode_timeout = false;
 bool buzzer_locked = false;
-bool switch_activated = false;
+bool    switch_activated = false;
 
 mutex_t buzzer_mutex = MUTEX_INIT;
 ztimer_t long_press_timer;
@@ -151,12 +151,13 @@ void _data_send_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
     coap_get_uri_path(pdu, &uri[0]);
     printf("[INFO] Response URI: %s", (char*)uri);
 }
+static char time_str[30];
 
 void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
-{
-    char time_str[27];
+{                       
+    // char time_str[30]= "                          ";
     char payload[MAX_PUT_PAYLOAD_LEN] = "";
-
+    (void) time_str;
     get_iso8601_time(time_str, sizeof(time_str));
 
     strcat(payload, buzzer_id);
@@ -164,8 +165,9 @@ void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
     strcat(payload, time_str);
 
     DEBUG("SENDING: %s\n", payload);
+    (void) main_thread_pid;
 
-    send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _data_send_resp_handler, (void *)main_thread_pid, false);
+    // send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _data_send_resp_handler, (void *)main_thread_pid, false);
 }
 
 
@@ -345,20 +347,24 @@ static void btn_callback(void *args)
 
     int state = gpio_read(btn);
 
-    DEBUG("PRESS CHECK: %d, %d, %d, %d\n", buzzer_paired, buzzer_locked, state, switch_activated);
+    if(buzzer_paired && (cur_ts - btn_debounce_ts >= DEBOUNCE_DELAY_MS)){
+        DEBUG("PRESS CHECK: %d, %d, %d, %d\n", buzzer_paired, buzzer_locked, state, switch_activated);
+        // DEBUG("PRESSED!!\n");
+    }
+
+    fflush(stdout);
 
     if (!buzzer_pairing_mode)
     {
         /* if HASN'T been pressed yet but pressed now and outside of the debounce window */
         if ((!switch_activated && state == BUZZER_ACTIVE_STATE) && (cur_ts - btn_long_press_debounce_ts >= PAIRING_MODE_DEBOUNCE_TIME_MS))
-        {
+        { 
 
             DEBUG("LONG PRESS START\n");
             ztimer_set(ZTIMER_MSEC, &long_press_timer, !buzzer_paired ? PAIRING_MODE_PRESS_DELAY_MS : RE_PAIRING_MODE_PRESS_DELAY_MS);
             mutex_lock(&led1_mutex);
             switch_activated = true;
             mutex_unlock(&led1_mutex);
-            switch_activated = true;
             btn_long_press_debounce_ts = cur_ts;
         }
         /* if HAS been pressed but released now and outside of the debounce window */
@@ -375,7 +381,7 @@ static void btn_callback(void *args)
     /* if buzzer is paired and not locked and outside of the debounce window */
     if (buzzer_paired && !buzzer_locked && (cur_ts - btn_debounce_ts >= DEBOUNCE_DELAY_MS))
     {
-        mutex_lock(&led1_mutex);
+        // mutex_lock(&led1_mutex);
 
         DEBUG("BUZZER %d!\n", state);
         lock_buzzer();
@@ -383,7 +389,7 @@ static void btn_callback(void *args)
         
         msg_send(&msg, *main_thread_pid);
 
-        mutex_unlock(&led1_mutex);
+        // mutex_unlock(&led1_mutex);
         btn_debounce_ts = cur_ts;
     }
 }
@@ -401,25 +407,41 @@ void init_buzzer_periph(kernel_pid_t *main_thread_pid)
 void get_iso8601_time(char *buffer, size_t buffer_size)
 {
 
-    struct tm tm_info;
-    (void)tm_info;
+    struct tm * tm_info;
 
-    uint64_t microseconds = sntp_get_unix_usec();
+    // uint64_t microseconds = sntp_get_unix_usec();
+    
 
     // /* --- just for testing  --- */
-    // uint64_t microseconds = 1719846389000000;
-    // microseconds += xtimer_now_usec64();
+    uint64_t microseconds = 1719846389000000;
+    microseconds += xtimer_now_usec64();
     // /* --- just for testing  --- */
 
     time_t seconds = microseconds / 1000000;
     long remaining_microseconds = microseconds % 1000000;
 
     // Convert seconds since epoch to tm structure
-    gmtime_r(&seconds, &tm_info);
-    tm_info.tm_hour += TIME_ZONE_OFFSET_HOUR;
+    // gmtime_r(&seconds, tm_info);
+    tm_info = gmtime(&seconds);
+    // tm_info->tm_hour += TIME_ZONE_OFFSET_HOUR;
+    tm_fill_derived_values(tm_info);
 
-    strftime(buffer, buffer_size, "%Y-%m-%dT%H:%M:%S", &tm_info);
-    snprintf(buffer + strlen(buffer), buffer_size - strlen(buffer), ".%06ldZ", remaining_microseconds);
+    (void) seconds;
+    (void) remaining_microseconds;
+    (void) buffer_size;
+    (void) buffer;
+
+    DEBUG("TM: %d,%d,%d\n",  tm_info->tm_hour,tm_info->tm_min,tm_info->tm_sec);
+    // DEBUG("TM: %d\n");   // tm_is_valid_date(tm_info.tm_year,tm_info.tm_mon, tm_info.tm_mday) 
+       
+    
+    //** TODO: fails here  */
+    strftime(buffer, buffer_size, "H:%M:%S", tm_info);
+
+    // if(strftime(buffer, buffer_size, "%Y-%m-%dT%H:%M:%S", &tm_info) <= 0){
+    //     perror("Coulnd't write to time buffer!");
+    // }
+    // snprintf(buffer + strlen(buffer), buffer_size - strlen(buffer), ".%06ldZ", remaining_microseconds);
 }
 
 /**
@@ -441,7 +463,9 @@ ssize_t _buzzer_reset_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_re
     msg_t msg;
 
     if (buzzer_paired && buzzer_locked){
+        DEBUG("RESET received!\n");
         msg.content.value = MODE_NORMAL;
+
         msg_send(&msg, *main_thread_pid);
     }
 
@@ -452,7 +476,6 @@ void init_buzzer_resources(kernel_pid_t *main_thread_pid)
 {
     // snprintf(&_resource_uris[0][0], CONFIG_URI_MAX,"%s/reset",BUZZER_URI_BASE)
 
-    DEBUG("I RESET: %d\n", *main_thread_pid);
 
     _buzzer_resources[0].path = BUZZER_RESET_URI;
     _buzzer_resources[0].methods = COAP_PUT;

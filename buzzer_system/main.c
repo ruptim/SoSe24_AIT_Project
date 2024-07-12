@@ -11,7 +11,7 @@
 /**
  * @ingroup     examples
  * @{
- *
+ * 
  * @file
  * @brief       Default application that shows a lot of functionality of RIOT
  *
@@ -132,16 +132,16 @@ void* main_routine(void* args){
                 printf("[INFO] Mode: PAIRING\n");
                 break;
             case MODE_NORMAL: 
-                printf("[INFO] Mode: NORMAL\n");
                 normal_mode();
+                printf("[INFO] Mode: NORMAL\n");
                 break;
             case MODE_LOCKED: 
-                printf("[INFO] Mode: LOCKED\n");
                 locked_mode();
+                printf("[INFO] Mode: LOCKED\n");
                 break;
             default:
-                printf("[INFO] Mode: NOT_CONNECTED\n");
                 not_connected_mode();
+                printf("[INFO] Mode: NOT_CONNECTED\n");
         }
 
         msg_receive(&msg);
