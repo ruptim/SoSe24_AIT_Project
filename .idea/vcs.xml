@@ -2,7 +2,12 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+<<<<<<< HEAD
+    <mapping directory="$PROJECT_DIR$/RIOT_AIT" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/RIOT_AIT/build/pkg/cmsis" vcs="Git" />
+=======
     <mapping directory="$PROJECT_DIR$/RIOT" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/RIOT_AIT" vcs="Git" />
+>>>>>>> e6a89c2707f4827dd26dc1f56f67d17be3f8eee0
   </component>
 </project>
