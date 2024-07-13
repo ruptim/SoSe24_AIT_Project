@@ -42,6 +42,8 @@ test_mode = False
 '''
 device_status_map = {}
 device_status_map_mutex = asyncio.Lock()
+device_heartbeat_map = {}
+device_heartbeat_map_mutex = asyncio.Lock()
 
 
 device_list = ui.row() ## only for tmp ui
@@ -114,6 +116,7 @@ class ButtonRegisterResource(resource.Resource):
 
             }
             l.bind_text_from(device_status_map[register_name],'locked') ## only for tmp ui
+            print(f"ADDED NEW BUZZER {register_name}")
             
         
         return aiocoap.Message(code=aiocoap.CHANGED,payload=register_name.encode('ascii'))
@@ -121,7 +124,9 @@ class ButtonRegisterResource(resource.Resource):
     async def register_device(self, request):
         payload = request.payload.decode('ascii')
         if len(payload): 
-            entry = device_status_map.get(payload)
+            entry = None
+            async with device_status_map_mutex:
+                entry = device_status_map.get(payload)
 
             # if the re-registration comes from the correct endpoint: accept
             if entry and entry['endpoint'] == request.remote.uri_base:
@@ -189,9 +194,9 @@ class HeartbeatResource(resource.Resource):
     async def render_put(self, request):
         device_id = request.payload.decode("utf-8")
         print('HEARTBEAT received of %s' % device_id)
-        async with device_status_map_mutex:
-            if (device_status_map.get(device_id)):
-                device_status_map[device_id]['last_heartbeat'] = time()
+        async with device_heartbeat_map_mutex:
+            if (device_heartbeat_map.get(device_id)):
+                device_heartbeat_map[device_id] = {'last_heartbeat':time()} 
                 
         return aiocoap.Message(code=aiocoap.CHANGED)
 
@@ -215,7 +220,15 @@ async def send_reset_to_buzzer(key, device):
     except aiocoap.error.NetworkError:
         return key
     return None
-    
+
+
+async def remove_old_buzzers(to_remove):
+    async with device_status_map_mutex:
+                    for (k,d) in to_remove:
+                        device_list.remove(d['label']) ## only for tmp ui
+                        device_status_map.pop(k)       
+                        print(f"REMOVED: {k}") 
+
 
 async def reset_buzzers():
 
@@ -227,10 +240,11 @@ async def reset_buzzers():
         for (key,device) in device_status_map.items():
             rem_key = await send_reset_to_buzzer(key,device)
             if rem_key: to_remove.append(rem_key)
+    
+    if len(to_remove) > 0: 
+        remove_old_buzzers(to_remove)
 
-        for k in to_remove:
-            device_status_map.pop(k)       
-            print(f"REMOVED: {k}") 
+
 
 
 async def heartbeat_monitor_routine():
@@ -239,16 +253,12 @@ async def heartbeat_monitor_routine():
         to_remove = []
         start_time = time()
 
-        async with device_status_map_mutex:
-            for (dev_id,dev) in device_status_map.items():
+        async with device_heartbeat_map_mutex:
+            for (dev_id,dev) in device_heartbeat_map.items():
                 if abs(start_time - dev['last_heartbeat']) > HEARTBEAT_INTERVAL_S:
                     to_remove.append((dev_id,dev))
-
-        for (k,d) in to_remove:
-            device_list.remove(d['label']) ## only for tmp ui
-            device_status_map.pop(k)       
-            print(f"REMOVED: {k}") 
-
+        
+        if len(to_remove) > 0: asyncio.create_task(remove_old_buzzers(to_remove))
 
                 
 
@@ -258,10 +268,14 @@ async def heartbeat_monitor_routine():
         await asyncio.sleep(sleep_time)
 
 
+
+
+#
+
 # logging setup
 
-logging.basicConfig(level=logging.ERROR)
-logging.getLogger("coap-server").setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
+# logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
 async def main():
     # Resource tree creation
