@@ -18,6 +18,8 @@ void start_not_conn_blink_thread(void);
 
 void start_pairing_routine(kernel_pid_t* main_thread_pid);
 
+void start_heartbeat_routine(kernel_pid_t *main_thread_pid);
+
 void enable_normal_mode(void);
 void disble_normal_mode(void);
 
@@ -27,5 +29,8 @@ void unlock_buzzer(void);
 
 void enable_not_connected_mode(void);
 void set_connection_status(bool connected);
+
+
+void send_buzzer_pressed(kernel_pid_t* main_thread_pid);
 
 #endif /* GAMESHOW_BUZZER_H */
