@@ -14,7 +14,6 @@
 #endif 
 
 #define MAX_PUT_PAYLOAD_LEN 64
-#define HEARTBEAT_SLEEP_DURATION_MS 2000
 
 extern const char uri_base[128];
 extern char buzzer_id[MAX_BUZZER_ID_LEN];
@@ -39,5 +38,7 @@ void send_heartbeat(void);
 void *heartbeat_routine(void *args);
 
 void start_heartbeat(kernel_pid_t *main_thread_pid);
+
+void set_connection_lost(bool status);
 
 #endif /* BUZZER_COMMUNICATION_H */
