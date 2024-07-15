@@ -4,6 +4,9 @@
 #define TIME_STRING_LEN 30
 #define MAX_BUZZER_ID_LEN 32
 
+#define HEARTBEAT_SLEEP_DURATION_MS 3000
+
+
 #define CONFIG_URI_MAX 128
 #define BUZZER_RESET_URI "/buzzer/reset_buzzer"
 #define BUZZER_SERVER_HEARTBEAT_URI "/b/heartbeat"

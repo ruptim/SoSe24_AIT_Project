@@ -15,7 +15,12 @@ char buzzer_id[MAX_BUZZER_ID_LEN];
 bool buzzer_id_received = false;
 
 bool hb_timeout = false;
+bool connection_lost = false;
 
+
+void set_connection_lost(bool status){
+    connection_lost = status;
+}
 
 
 void send_data(const char* uri_base, const char* path, const void* payload, size_t payload_len,
@@ -95,6 +100,7 @@ void _data_send_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
         kernel_pid_t *main_thread_pid = (kernel_pid_t *)memo->context;
         msg_t msg;
         msg.content.value = EVENT_NOT_CONNECTED;
+        set_connection_lost(true);
 
         msg_send(&msg, *main_thread_pid);
 
@@ -119,7 +125,17 @@ void _heartbeat_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
     {
 
         hb_timeout = true;
+        return;
     }   
+
+    unsigned int code_flag = pdu->hdr->code;
+
+
+    /* if pairing request was not accepted, set timeout */
+    if(code_flag == COAP_CODE_FORBIDDEN){
+         hb_timeout = true;
+         return;
+    }
 
     hb_timeout = false;    
 }
@@ -132,17 +148,18 @@ void send_heartbeat(void){
 
 void *heartbeat_routine(void *args)
 {
+    DEBUG("[INFO] Heartbeat started\n");
     (void)args;
     kernel_pid_t *main_thread_pid = (kernel_pid_t *)args;
 
-
+    hb_timeout = false;
     
 
     kernel_pid_t own_pid = thread_getpid();
     ztimer_t sleep_timer;
     
-    
-    while (!hb_timeout)
+    printf("[DB]: %d, %d\n", hb_timeout,connection_lost);
+    while (!hb_timeout && !connection_lost)
     {
         // DEBUG("[INFO] *bum bum*\n");
         hb_timeout = true;
@@ -166,7 +183,7 @@ void *heartbeat_routine(void *args)
 
 
 void start_heartbeat(kernel_pid_t *main_thread_pid ){
-
+    set_connection_lost(false);
     thread_create(buzzer_heartbeat_thread_stack, sizeof(buzzer_heartbeat_thread_stack),
                   THREAD_PRIORITY_MAIN - 4, 0,
                   heartbeat_routine, (void*) main_thread_pid, "heartbeat_thread");
