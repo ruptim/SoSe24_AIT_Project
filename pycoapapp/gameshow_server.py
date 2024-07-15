@@ -29,7 +29,7 @@ import re
 
 from nicegui import ui, app
 
-HEARTBEAT_INTERVAL_S = 3
+HEARTBEAT_INTERVAL_S = 4
 
 
 test_mode = False
@@ -179,7 +179,7 @@ class ButtonPressedResource(resource.Resource):
 
     async def render_put(self, request):
         print('PUT payload: %s' % request.payload)
-        await self.set_content(request.payload.decode('ascii'))
+        asyncio.create_task(self.set_content(request.payload.decode('ascii')))
 
         return aiocoap.Message(code=aiocoap.CHANGED)
 
@@ -193,7 +193,7 @@ class HeartbeatResource(resource.Resource):
 
     async def render_put(self, request):
         device_id = request.payload.decode("utf-8")
-        print('HEARTBEAT received of %s' % device_id)
+        # print('HEARTBEAT received of %s' % device_id)
         async with device_heartbeat_map_mutex:
             if (device_heartbeat_map.get(device_id)):
                 device_heartbeat_map[device_id] = {'last_heartbeat':time()} 
