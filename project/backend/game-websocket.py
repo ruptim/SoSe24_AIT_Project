@@ -1,30 +1,18 @@
+import asyncio
+from datetime import datetime
 import zmq
 from flask import Flask, request
 from flask_socketio import SocketIO, emit
-from threading import Timer, Thread
+from threading import Thread
 import json
-
 from zmq import ZMQError
-
 import config as config
 
 app = Flask(__name__)
 # app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app, cors_allowed_origins='*')
 
-buzzers = []
-
-# TODO: set last_reset_timestamp here, when reset is being pressed (when reset pressed: send reset event as well)
-# no isPressed as input -> isLocked -> isPressed
-# map isLocked -> isPressed
-# calculate delay from last_reset_timestamp - timestamp
-
-# for answers to Timon Backend:
-# reset: "reset, "
-# pairing mode an/aus: "pairing, true/false"
-# remove buzzer: "remove, name"
-
-#
+current_timestamp: datetime = None
 
 @socketio.on('connect')
 def connect():
@@ -33,7 +21,7 @@ def connect():
     :return:
     """
     print('Client connected')
-    updateBuzzers() # FIXME debug only
+    # updateBuzzers() # FIXME debug only
 
 
 @socketio.on('disconnect')
@@ -50,10 +38,13 @@ def reset():
     """
     Resets all buzzers to not be pressed anymore
     """
-    global publisherSocket
+    global publisherSocket, current_timestamp
 
     print('Received RESET')
-    publisherSocket.send_string("%s" % (config.events['reset']))
+    current_timestamp = datetime.now()
+    print(current_timestamp)
+
+    publisherSocket.send_string("%s" % (config.channels['reset']))
 
 
 @socketio.on(config.events['remove'])
@@ -88,10 +79,58 @@ def default_error_handler(e):
     pass
 
 
-def broadcast(buzzerList):
-    print(f"Sending broadcast to channel {config.events['buzzers']}")
-    socketio.emit(config.events['buzzers'], json.dumps(buzzerList))
+async def send_buzzers_to_ui(buzzer_list):
+    """
+    Maps the buzzer list and sends it to the UI
+    :param buzzer_list: list of buzzers of type [{"buzzerId": number, "buzzerName": str, "islocked": bool, "timestamp": timestamp}]
+    :return:
+    """
+    try:
+        transformed_data = mapBuzzers(buzzer_list)
 
+        print(f"Sending broadcast to channel {config.events['buzzers']}")
+        # socketio.emit(config.events['buzzers'], json.dumps(transformed_data))
+
+        print (json.dumps(transformed_data))
+        socketio.emit('buzzers', 'TEST')
+        emitBuzzers(buzzerList)
+        print('Sent')
+    except Exception as err:
+        print(err)
+
+
+def mapBuzzers(buzzer_list):
+    """
+    Maps the buzzer list to fit the requirements of the UI and calculates the delay to current_timestamp
+    :param buzzer_list: The deserialized list of buzzers
+    :return:
+    """
+    global current_timestamp
+    result = []
+
+    for obj in buzzer_list:
+        transformed_obj = {
+            "buzzerId": obj["buzzerId"],
+            "buzzerName": obj["buzzerName"],
+            "isPressed": obj["timestamp"] is not None,  # Set to True if timestamp is provided
+            "isLocked": obj["islocked"],
+            "delay": None
+        }
+
+        if obj["timestamp"] is not None and current_timestamp is not None:
+            timestamp = datetime.strptime(obj["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
+            delay = current_timestamp - timestamp
+            transformed_obj["delay"] = delay.total_seconds()  # Calculating delay
+        else:
+            transformed_obj["delay"] = None
+
+        result.append(transformed_obj)
+
+    return result
+
+
+# TODO only for testing, please remove
+# START TEST
 
 def updateBuzzers():
     """
@@ -119,9 +158,6 @@ def updateBuzzers():
 
     emit(config.events['buzzers'], json.dumps(buzzerList))
 
-
-# TODO only for testing, please remove
-# START TEST
 
 buzzerList = [
     {
@@ -232,7 +268,10 @@ def initSubscriber():
         try:
             msg_json = subscriberSocket.recv_json()
             print(msg_json)
-        except ZMQError as err:
+
+            asyncio.run(send_buzzers_to_ui(msg_json))
+
+        except Exception as err:
             print(err)
 
 
@@ -245,4 +284,4 @@ if __name__ == '__main__':
     subscriberThread.start()
 
 
-    socketio.run(app, config.hostname, config.port, allow_unsafe_werkzeug=True, debug=False)
+    socketio.run(app, config.hostname, config.port, allow_unsafe_werkzeug=True)
