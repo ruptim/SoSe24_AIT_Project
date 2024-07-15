@@ -79,7 +79,7 @@ def default_error_handler(e):
     pass
 
 
-async def send_buzzers_to_ui(buzzer_list):
+def send_buzzers_to_ui(buzzer_list):
     """
     Maps the buzzer list and sends it to the UI
     :param buzzer_list: list of buzzers of type [{"buzzerId": number, "buzzerName": str, "islocked": bool, "timestamp": timestamp}]
@@ -92,8 +92,7 @@ async def send_buzzers_to_ui(buzzer_list):
         # socketio.emit(config.events['buzzers'], json.dumps(transformed_data))
 
         print (json.dumps(transformed_data))
-        socketio.emit('buzzers', 'TEST')
-        emitBuzzers(buzzerList)
+        socketio.emit(config.events['buzzers'], 'TEST')
         print('Sent')
     except Exception as err:
         print(err)
@@ -194,6 +193,7 @@ def testBuzzerOnePressed(param):
     emitBuzzers(buzzerList)
 
 
+
 @socketio.on('test_2_pressed')
 def testBuzzerOnePressed(param):
     print('Buzzer two pressed')
@@ -241,7 +241,8 @@ def testBuzzerDel(param):
 def emitBuzzers(buzzers):
     print('Emit buzzers')
     print(buzzers)
-    socketio.emit(config.events['buzzers'], json.dumps(buzzers))
+
+    socketio.emit(config.events['buzzers'], json.dumps(buzzers), callback=lambda: print('received'))
 
 # END TEST
 
@@ -262,14 +263,14 @@ def initSubscriber():
     subscriberSocket.connect(f"tcp://{config.hostname}:{config.subscribe_port}")
     subscriberSocket.setsockopt_string(zmq.SUBSCRIBE, config.channels["buzzers"])
 
-    print(f"SUBSCRIBE connected to channel {config.channels['buzzers']}")
+    print(f"SUBSCRIBE connected to channel \"{config.channels['buzzers']}\"")
 
     while True:
         try:
             msg_json = subscriberSocket.recv_json()
             print(msg_json)
 
-            asyncio.run(send_buzzers_to_ui(msg_json))
+            send_buzzers_to_ui(msg_json)
 
         except Exception as err:
             print(err)
@@ -280,8 +281,7 @@ if __name__ == '__main__':
     subscriberThread = Thread(target=initSubscriber)
     publisherThread = Thread(target=initPublisher)
 
-    publisherThread.start()
     subscriberThread.start()
-
+    publisherThread.start()
 
     socketio.run(app, config.hostname, config.port, allow_unsafe_werkzeug=True)

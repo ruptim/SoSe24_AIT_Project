@@ -7,14 +7,18 @@ from time import sleep
 def msq2():
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
-    socket.bind("tcp://*:5556")
-    while True:        
-        socket.send_string("AAAA")
-        sleep(1)
+    socket.bind("tcp://*:5555")
+    # while True:
+    for i in range(5):
+        print("Publishing")
+        socket.send_string('[{"buzzerId": 0, "buzzerName": "buzzer0", "islocked": "True", "timestamp": null}, {"buzzerId": 1, "buzzerName": "buzzer1", "islocked": "True", "timestamp": "2024-07-15T14:09:28.423909"}]')
+        sleep(3)
+
+
 def msq():
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
-    socket.connect("tcp://localhost:5555")
+    socket.connect("tcp://localhost:5556")
     socket.setsockopt(zmq.SUBSCRIBE, b'')
    
     while True:        
