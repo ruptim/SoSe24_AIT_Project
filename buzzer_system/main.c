@@ -74,9 +74,14 @@ static const shell_command_t shell_commands[] = {
 
 
 
-
 void not_connected_mode(void){
+    set_connection_status(false);
     enable_not_connected_mode();
+}
+
+void enable_connected(void){
+    set_connection_status(true);
+    start_heartbeat_routine(&rcv_pid);
 }
 
 void pairing_mode(void){
@@ -88,7 +93,6 @@ void normal_mode(void){
 }
 
 void locked_mode(void){
-    set_connection_status(true);
     lock_buzzer();
 }
 
@@ -123,19 +127,29 @@ void* main_routine(void* args){
     while(1){
 
         switch(mode){
-            case MODE_NOT_CONNECTED: 
+            case EVENT_NOT_CONNECTED: 
                 not_connected_mode();
                 printf("[INFO] Mode: NOT_CONNECTED\n");
                 break;
-            case MODE_PAIRING: 
+            case EVENT_START_PAIRING: 
                 pairing_mode();
                 printf("[INFO] Mode: PAIRING\n");
                 break;
-            case MODE_NORMAL: 
+            case EVENT_CONNECTED: 
+                enable_connected();
+                locked_mode();
+                printf("[INFO] Mode: LOCKED\n");
+                break;
+            case EVENT_ENABLE_NORMAL: 
                 normal_mode();
                 printf("[INFO] Mode: NORMAL\n");
                 break;
-            case MODE_LOCKED: 
+            case EVENT_ENABLE_LOCKED: 
+                locked_mode();
+                printf("[INFO] Mode: LOCKED\n");
+                break;
+            case EVENT_BUZZER_PRESSED: 
+                send_buzzer_pressed(&rcv_pid);
                 locked_mode();
                 printf("[INFO] Mode: LOCKED\n");
                 break;

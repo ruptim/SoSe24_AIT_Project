@@ -18,12 +18,7 @@
 #include "mutex.h"
 
 #define MAX_RESOURCES 10
-#define CONFIG_URI_MAX 128
-#define BUZZER_RESET_URI "/buzzer/reset_buzzer"
-#define BUZZER_HEARTBEAT_URI "/buzzer/heartbeat"
-#define BUZZER_SERVER_PRESSED_URI "/b/pressed"
-#define BUZZER_SERVER_REGISTER_URI "/b/register"
-#define BUZZER_SERVER_RE_REGISTER_OK "0"
+
 #define DEBOUNCE_DELAY_MS 300
 #define BUZZER_ACTIVE_STATE 0
 #define BUZZER_PASSIV_STATE 1
@@ -75,9 +70,7 @@ char buzzer_pairing_thread_stack[THREAD_STACKSIZE_DEFAULT];
 char buzzer_blink_thread_stack[THREAD_STACKSIZE_DEFAULT];
 char buzzer_pairing_blink_thread_stack[THREAD_STACKSIZE_DEFAULT];
 
-const char uri_base[128] = "coap://[2001:67c:254:b0b2:affe:4000:0:1]:9993";
-char buzzer_id[MAX_PUT_PAYLOAD_LEN];
-bool buzzer_id_received = false;
+
 
 #define ENABLE_DEBUG 1
 #include "debug.h"
@@ -87,6 +80,8 @@ enum BLINK_MODES
     BLINK_NOT_CONN,
     BLINK_PAIR_MODE,
 };
+
+
 
 void lock_buzzer(void)
 {
@@ -126,40 +121,16 @@ void set_connection_status(bool connected)
     buzzer_paired = connected;
 }
 
-void _data_send_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
-                             const sock_udp_ep_t *remote)
-{
-    (void)pdu;
-    (void)remote;
-
-    /* response timeout or error in response */
-    if (memo->state == GCOAP_MEMO_TIMEOUT || memo->state != GCOAP_MEMO_RESP)
-    {
-        kernel_pid_t *main_thread_pid = (kernel_pid_t *)memo->context;
-        msg_t msg;
-        msg.content.value = MODE_NOT_CONNECTED;
-
-        msg_send(&msg, *main_thread_pid);
-
-        DEBUG("CONNECTION LOST\n");
-        return;
-    }
-
-
-    uint8_t uri[CONFIG_NANOCOAP_URI_MAX];
-
-    coap_get_uri_path(pdu, &uri[0]);
-    printf("[INFO] Response URI: %s", (char*)uri);
+void start_heartbeat_routine(kernel_pid_t *main_thread_pid){
+    start_heartbeat(main_thread_pid);
 }
-static char time_str[30];
 
 void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
 {                       
-    // char time_str[30]= "                          ";
-    char payload[MAX_PUT_PAYLOAD_LEN] = "";
-    (void) time_str;
+    char time_str[TIME_STRING_LEN];
     get_iso8601_time(time_str, sizeof(time_str));
 
+    char payload[MAX_PUT_PAYLOAD_LEN] = "";
     strcat(payload, buzzer_id);
     strcat(payload, ",");
     strcat(payload, time_str);
@@ -167,7 +138,7 @@ void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
     DEBUG("SENDING: %s\n", payload);
     (void) main_thread_pid;
 
-    // send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _data_send_resp_handler, (void *)main_thread_pid, false);
+    send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _data_send_resp_handler, (void *)main_thread_pid, false);
 }
 
 
@@ -210,7 +181,7 @@ void pair_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
     else
     {
         DEBUG("[INFO] Registered name: %s\n",payload);
-        memcpy(buzzer_id, payload, MAX_PUT_PAYLOAD_LEN);
+        memcpy(buzzer_id, payload, MAX_BUZZER_ID_LEN);
         buzzer_id_received = true;
     }
 
@@ -220,6 +191,10 @@ void pair_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
 
     thread_wakeup(*pairing_thread_pid);
 }
+
+//TODO: HEARTBEAT TODO: 
+
+
 
 void send_pair_request(kernel_pid_t *pairing_thread_pid)
 {
@@ -232,6 +207,7 @@ void send_pair_request(kernel_pid_t *pairing_thread_pid)
 
     send_data(uri_base, BUZZER_SERVER_REGISTER_URI, (void *)payload, strlen(payload), pair_resp_handler, (void *)pairing_thread_pid, true);
 }
+
 
 void *pairing_blink_routine(void *args)
 {
@@ -302,11 +278,11 @@ void *pairing_mode_routine(void *args)
     if (buzzer_pairing_mode_timeout)
     {
         buzzer_pairing_mode = false;
-        msg.content.value = MODE_NOT_CONNECTED;
+        msg.content.value = EVENT_NOT_CONNECTED;
     }
     else
     {
-        msg.content.value = MODE_LOCKED;
+        msg.content.value = EVENT_CONNECTED;
     }
     msg_send(&msg, *main_thread_pid);
 
@@ -327,7 +303,7 @@ void long_press_callback(void *args)
     (void)args;
     kernel_pid_t *main_thread_pid = (kernel_pid_t *)args;
     msg_t msg;
-    msg.content.value = MODE_PAIRING;
+    msg.content.value = EVENT_START_PAIRING;
 
     DEBUG("LONG PRESS REGISTERED!\n");
 
@@ -339,7 +315,7 @@ static void btn_callback(void *args)
     (void)args;
     kernel_pid_t *main_thread_pid = (kernel_pid_t *)args;
     msg_t msg;
-    msg.content.value = MODE_LOCKED;
+    msg.content.value = EVENT_BUZZER_PRESSED;
 
     ztimer_acquire(ZTIMER_MSEC);
     ztimer_now_t cur_ts = ztimer_now(ZTIMER_MSEC);
@@ -347,12 +323,6 @@ static void btn_callback(void *args)
 
     int state = gpio_read(btn);
 
-    if(buzzer_paired && (cur_ts - btn_debounce_ts >= DEBOUNCE_DELAY_MS)){
-        DEBUG("PRESS CHECK: %d, %d, %d, %d\n", buzzer_paired, buzzer_locked, state, switch_activated);
-        // DEBUG("PRESSED!!\n");
-    }
-
-    fflush(stdout);
 
     if (!buzzer_pairing_mode)
     {
@@ -384,8 +354,7 @@ static void btn_callback(void *args)
         // mutex_lock(&led1_mutex);
 
         DEBUG("BUZZER %d!\n", state);
-        lock_buzzer();
-        send_buzzer_pressed(main_thread_pid);
+       
         
         msg_send(&msg, *main_thread_pid);
 
@@ -431,17 +400,16 @@ void get_iso8601_time(char *buffer, size_t buffer_size)
     (void) buffer_size;
     (void) buffer;
 
-    DEBUG("TM: %d,%d,%d\n",  tm_info->tm_hour,tm_info->tm_min,tm_info->tm_sec);
+
+
     // DEBUG("TM: %d\n");   // tm_is_valid_date(tm_info.tm_year,tm_info.tm_mon, tm_info.tm_mday) 
        
     
-    //** TODO: fails here  */
-    strftime(buffer, buffer_size, "H:%M:%S", tm_info);
 
-    // if(strftime(buffer, buffer_size, "%Y-%m-%dT%H:%M:%S", &tm_info) <= 0){
-    //     perror("Coulnd't write to time buffer!");
-    // }
-    // snprintf(buffer + strlen(buffer), buffer_size - strlen(buffer), ".%06ldZ", remaining_microseconds);
+    if(strftime(buffer, buffer_size, "%Y-%m-%dT%H:%M:%S", tm_info) <= 0){
+        perror("Coulnd't write to time buffer!");
+    }
+    snprintf(buffer + strlen(buffer), buffer_size - strlen(buffer), ".%06ld", remaining_microseconds);
 }
 
 /**
@@ -464,7 +432,7 @@ ssize_t _buzzer_reset_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len, coap_re
 
     if (buzzer_paired && buzzer_locked){
         DEBUG("RESET received!\n");
-        msg.content.value = MODE_NORMAL;
+        msg.content.value = EVENT_ENABLE_NORMAL;
 
         msg_send(&msg, *main_thread_pid);
     }
@@ -537,7 +505,10 @@ int get_time(int argc, char **argv)
     (void)argc;
     (void)argv;
 
-    // DEBUG("ISO Time: %s\n",time_str);
+    char time_str[30];
+
+    get_iso8601_time(time_str, sizeof(time_str));
+    DEBUG("ISO Time: %s\n",time_str);
 
     return 0;
 }
