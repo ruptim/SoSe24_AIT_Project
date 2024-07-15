@@ -1,0 +1,2 @@
+Flask-SocketIO==5.3.6
+python-socketio==5.11.3

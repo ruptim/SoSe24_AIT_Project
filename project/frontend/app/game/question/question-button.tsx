@@ -1,20 +1,24 @@
-import {Button} from "@nextui-org/button";
+import { Button } from "@nextui-org/button";
 
 type QuestionButtonParams = {
-    isSkip: boolean,
-    onButtonClick: () => void,
-    isEnabled: boolean
-}
+  isSkip: boolean;
+  onButtonClick: () => void;
+  isEnabled: boolean;
+};
 
-export function QuestionButton({isSkip, onButtonClick, isEnabled}: QuestionButtonParams){
-
-    return (
-        <Button color="primary" className={"w-full"} onClick={onButtonClick} isDisabled={!isEnabled}>
-            {isSkip ? (
-                <span>Next &gt;&gt;</span>
-            ) : (
-                <span>&lt;&lt; Previous</span>
-            )}
-        </Button>
-    )
+export function QuestionButton({
+  isSkip,
+  onButtonClick,
+  isEnabled,
+}: QuestionButtonParams) {
+  return (
+    <Button
+      className={"w-full"}
+      color="primary"
+      isDisabled={!isEnabled}
+      onClick={onButtonClick}
+    >
+      {isSkip ? <span>Next &gt;&gt;</span> : <span>&lt;&lt; Previous</span>}
+    </Button>
+  );
 }
