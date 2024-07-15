@@ -11,6 +11,18 @@ socketio = SocketIO(app, cors_allowed_origins='*')
 
 buzzers = []
 
+# TODO: set last_reset_timestamp here, when reset is being pressed (when reset pressed: send reset event as well)
+# no isPressed as input -> isLocked -> isPressed
+# map isLocked -> isPressed
+# calculate delay from last_reset_timestamp - timestamp
+
+# for answers to Timon Backend:
+# reset: "reset, "
+# pairing mode an/aus: "pairing, true/false"
+# remove buzzer: "remove, name"
+
+#
+
 @socketio.on('connect')
 def connect():
     """
