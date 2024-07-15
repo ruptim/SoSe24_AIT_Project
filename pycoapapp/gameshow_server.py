@@ -11,8 +11,10 @@ for some more information."""
 from datetime import datetime
 import logging
 
+import json
+
 from threading import Thread
-from time import time
+from time import time, sleep
 
 import asyncio
 
@@ -107,6 +109,7 @@ class ButtonRegisterResource(resource.Resource):
         
         async with device_status_map_mutex:
             device_status_map[register_name] = {
+                'device_num': device_count,
                 'endpoint': ep,
                 'register_time': datetime.now(),
                 'ts_queue': asyncio.Queue(),
@@ -304,14 +307,68 @@ def toggle_test_mode():
     global test_mode
     test_mode = not test_mode
 
+from threading import Thread
+import zmq
+
+
+
+def msq2():
+    context = zmq.Context()
+    socket = context.socket(zmq.PUB)
+    socket.bind("tcp://*:5555")
+    while True:        
+        socket.send_string("Server message to client3")
+        sleep(1)
+def msq():
+    context = zmq.Context()
+    socket = context.socket(zmq.SUB)
+    socket.connect("tcp://localhost:5556")
+    socket.setsockopt(zmq.SUBSCRIBE, b'')
+    # socket.bind("tcp://*:5556")
+   
+    while True:        
+        msg = socket.recv()
+        print(msg)
+        sleep(1)
+        json.dump()
+
+
+'''
+
+UI-Backend:
+    - PUB: 5556
+    - SUB: 5555
+
+Buzzer-Backend:
+    - PUB: 5555
+    - SUB: 5556
+    
+
+zu UI-Backend: immer liste aller Buzzer in form von game-types.ts
+    - Buzzer-ID
+    - Bei Disconnect -> aktuelle Liste
+
+zu Buzzer-Backend:
+    - reset:               "reset, "
+    - pairing mode an/aus: "pairing, true/false" 
+    - remove buzzer:       "remove, id"
+'''
+
+
 if __name__ in {"__main__", "__mp_main__"}:
     # asyncio.run(main()) ## to run without ui 
+
 
 
     ui.button('Reset buzzers', on_click=reset_buzzers)
     ui.checkbox('Test mode', on_change=toggle_test_mode)
 
-    app.on_startup(main)
+    # app.on_startup(msq)
 
+    # Thread(target=msq).start()
+    # Thread(target=msq2).start()
+    # asyncio.run(main())
+
+    app.on_startup(main)
     ui.run(host="192.168.69.111",port=9080)
 
