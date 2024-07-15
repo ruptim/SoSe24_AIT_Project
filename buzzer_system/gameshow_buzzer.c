@@ -160,7 +160,16 @@ void pair_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
         return;
     }
 
-    unsigned int code_flag = coap_get_code_class(pdu);
+    unsigned int code_flag = pdu->hdr->code;
+
+
+    /* if pairing request was not accepted, set timeout */
+    if(code_flag == COAP_CODE_FORBIDDEN){
+        buzzer_pairing_mode_timeout = true;
+        thread_wakeup(*pairing_thread_pid);
+        DEBUG("PAIR NOT ACCEPTED!\n");
+        return;
+    }
 
     char payload[MAX_PUT_PAYLOAD_LEN];
     memcpy(payload, (char *)pdu->payload, pdu->payload_len);
@@ -378,13 +387,8 @@ void get_iso8601_time(char *buffer, size_t buffer_size)
 
     struct tm * tm_info;
 
-    // uint64_t microseconds = sntp_get_unix_usec();
-    
+    uint64_t microseconds = sntp_get_unix_usec();
 
-    // /* --- just for testing  --- */
-    uint64_t microseconds = 1719846389000000;
-    microseconds += xtimer_now_usec64();
-    // /* --- just for testing  --- */
 
     time_t seconds = microseconds / 1000000;
     long remaining_microseconds = microseconds % 1000000;
