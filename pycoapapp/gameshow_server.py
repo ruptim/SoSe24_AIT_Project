@@ -263,9 +263,8 @@ async def send_data(ctx,uri,payload):
 """
     Function to send a multicast CoAP PUT message to multicast uri and given resource path with given payload.
 """
-async def send_data_multicast(ctx,path,payload):
-    if path.startswith("/"): path = path[0:]
-
+async def send_data_multicast(path,payload):
+    ctx = await aiocoap.Context.create_client_context()
     request = aiocoap.Message(code=aiocoap.PUT, mtype=aiocoap.NON, uri=f"{MULTICAST_URI_BASE}/{path}",payload=payload)
     requester = ctx.request(request)
     resp = await requester.response
@@ -304,41 +303,17 @@ async def remove_old_buzzers(to_remove):
     ui_backend_sender.send_buzzer_info()
 
 
-"""
-    Send a reset message to all registered buzzers.
-"""
-# async def reset_buzzers():
-    
-#     to_remove = []
-#     coroutines = []
-#     #todo: make each send a seperate task, so the resets are 'simultaneous'
-#     async with  device_status_map_mutex:
-#         for (key,device) in device_status_map.items():
-#             rem_key = await send_reset_to_buzzer(key,device)
-#             if rem_key: to_remove.append(rem_key)
-#             # coroutines.append(send_reset_to_buzzer(key,device))
-
-#     # to_remove = await asyncio.gather(*coroutines)
-
-#     # to_remove = [result for result in to_remove if result is not None]
-    
-#     if len(to_remove) > 0: 
-#         print("TO REMOVE",to_remove)
-#         await remove_old_buzzers(to_remove)
 async def reset_buzzers():
     """
-        Send a PUT request to reset-uris of a given device.
+        Send a reset message to all registered buzzers.
     """
-    ctx = await aiocoap.Context.create_client_context()
-
     async with  device_status_map_mutex:
         for (key,device) in device_status_map.items():
             async with device['mutex']:
                 device['timestamp'] = None           
                 device['locked'] = "False" 
 
-    await send_data_multicast(ctx,"/buzzer/reset_buzzer","")
-        # return None
+    await send_data_multicast("buzzer/reset_buzzer","")
 
 
 """
