@@ -20,11 +20,12 @@ export function ManagementContainer({ buzzers, onBuzzerDelete }: ManagementConta
 
   function connectModalOpened() {
     setPairing(true);
-    socket.emit(backendConfig.events.pairing);
+    socket.emit(backendConfig.events.pairing, true);
   }
 
   function connectModalClosed() {
     setPairing(false);
+    socket.emit(backendConfig.events.pairing, false);
   }
 
   function deleteBuzzer(buzzer: BuzzerType) {

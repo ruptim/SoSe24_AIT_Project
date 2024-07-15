@@ -44,8 +44,8 @@ export default function GamePage() {
     socket.on(backendConfig.events.disconnect, onDisconnect);
     socket.on(backendConfig.events.buzzers, onBuzzerUpdate);
 
-   socket.connect();
-   setIsConnected(appSocket.connected);
+    socket.connect();
+    setIsConnected(appSocket.connected);
 
     return () => {
       socket.off(backendConfig.events.connect, onConnect);
