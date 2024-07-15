@@ -40,6 +40,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 
+UI_BACKEND_SUB_ADDR = "tcp://localhost:5556"
+BUZZER_BACKEND_PUB_ADDR = "tcp://*:5555"
 MULTICAST_URI_BASE = "coap://[ff02::2%lowpan0]"
 HEARTBEAT_INTERVAL_S = 4
 
@@ -64,10 +66,10 @@ class DataSender():
     def __init__(self) -> None:
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUB)
-        self.socket.bind("tcp://*:5555")
+        self.socket.bind(BUZZER_BACKEND_PUB_ADDR)
 
     def send(self,data_dict):
-        self.socket.send_string(json.dumps(data_dict))
+        self.socket.send_json(data_dict)
 
     async def _send_buzzer_list(self):
         data = []
@@ -95,7 +97,7 @@ def backend_message_receiver():
 
     context = zmq.Context()
     socket = context.socket(zmq.SUB)
-    socket.connect("tcp://localhost:5556")
+    socket.connect(UI_BACKEND_SUB_ADDR)
     socket.setsockopt(zmq.SUBSCRIBE, b'')
    
     while True:        
@@ -124,7 +126,7 @@ class ButtonRegisterResource(resource.Resource):
     async def send_registered_name(self,ep):
         """
            Generate a buzzer name for request and create entries in 'device_status_map' and 'device_heartbeat_map'.
-           Respond with CHANGED and the name as payload.
+           Respond with CREATED and the name as payload.
         """
         print(f"REQ: {ep}")
         device_num = -2
@@ -154,7 +156,7 @@ class ButtonRegisterResource(resource.Resource):
             ui_backend_sender.send_buzzer_info()
             
         
-        return aiocoap.Message(code=aiocoap.CHANGED,payload=register_name.encode('ascii'))
+        return aiocoap.Message(code=aiocoap.CREATED,payload=register_name.encode('ascii'))
 
     
     async def register_device(self, request):
@@ -224,7 +226,7 @@ class ButtonPressedResource(resource.Resource):
         print('PUT payload: %s' % request.payload)
         asyncio.create_task(self.set_content(request.payload.decode('ascii')))
 
-        return aiocoap.Message(code=aiocoap.CHANGED)
+        return aiocoap.Message(code=aiocoap.CREATED)
 
 class HeartbeatResource(resource.Resource):
     """ 
@@ -238,14 +240,14 @@ class HeartbeatResource(resource.Resource):
         """
             Receiver heartbeat of buzzer.
             If buzzer is not registerd, respond with FORBIDDEN else 
-            get current time and respond with CHANGED.
+            get current time and respond with CREATED.
         """
         device_id = request.payload.decode("utf-8")
         async with device_heartbeat_map_mutex:
             if (device_heartbeat_map.get(device_id)):
                 device_heartbeat_map[device_id] = {'last_heartbeat':time()+HEARTBEAT_INTERVAL_S} 
                 
-                return aiocoap.Message(code=aiocoap.CHANGED)
+                return aiocoap.Message(code=aiocoap.CREATED)
             else:
                 return aiocoap.Message(code=aiocoap.FORBIDDEN)
 
@@ -345,10 +347,6 @@ async def heartbeat_monitor_routine():
 
 
 
-
-
-
-
 async def main():
     # Resource tree creation
     root = resource.Site()
@@ -370,10 +368,6 @@ async def main():
     asyncio.create_task(heartbeat_monitor_routine())
     # Run forever
     await asyncio.get_running_loop().create_future()
-
-
-
-
 
 
 
