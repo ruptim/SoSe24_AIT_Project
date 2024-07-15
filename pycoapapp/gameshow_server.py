@@ -29,8 +29,6 @@ from queue import Queue
 
 import re
 
-from nicegui import ui, app
-
 
 from threading import Thread
 import zmq
@@ -42,6 +40,7 @@ logging.basicConfig(level=logging.INFO)
 
 
 
+MULTICAST_URI_BASE = "coap://[ff02::2%lowpan0]"
 HEARTBEAT_INTERVAL_S = 4
 
 
@@ -55,18 +54,6 @@ device_status_map = {}
 device_status_map_mutex = asyncio.Lock()
 device_heartbeat_map = {}
 device_heartbeat_map_mutex = asyncio.Lock()
-
-
-device_list = ui.row() ## only for tmp ui
-
-class status_label(ui.label): ## only for tmp ui
-    def _handle_text_change(self, text: str) -> None:
-        # super()._handle_text_change(text)
-        if text == 'False':
-            self.style("color:green")
-        else:
-            self.style("color:red")
-    
 
 
 class DataSender():
@@ -147,10 +134,7 @@ class ButtonRegisterResource(resource.Resource):
             max_device_num+=1
         register_name = f"buzzer{device_num}"
         
-        l = None        
-        with device_list: ## only for tmp ui
-            l = status_label(register_name) 
-            l.style('color:red') 
+       
         
         async with device_status_map_mutex:
             device_status_map[register_name] = {
@@ -159,11 +143,9 @@ class ButtonRegisterResource(resource.Resource):
                 'register_time': datetime.now(),
                 'timestamp': None,
                 'mutex': asyncio.locks.Lock(),
-                'label': l, ## only for tmp ui
                 "locked": "True"
 
             }
-            l.bind_text_from(device_status_map[register_name],'locked') ## only for tmp ui
             print(f"ADDED NEW BUZZER {register_name}")
 
             async with device_heartbeat_map_mutex:
@@ -278,6 +260,17 @@ async def send_data(ctx,uri,payload):
     resp = await requester.response
     return resp
 
+"""
+    Function to send a multicast CoAP PUT message to multicast uri and given resource path with given payload.
+"""
+async def send_data_multicast(ctx,path,payload):
+    if path.startswith("/"): path = path[0:]
+
+    request = aiocoap.Message(code=aiocoap.PUT, mtype=aiocoap.NON, uri=f"{MULTICAST_URI_BASE}/{path}",payload=payload)
+    requester = ctx.request(request)
+    resp = await requester.response
+    return resp
+
 
 """
     Send a PUT request to reset-uris of a given device.
@@ -293,7 +286,7 @@ async def send_reset_to_buzzer(key, device):
 
     except aiocoap.error.NetworkError:
         return key
-    return None
+    # return None
 
 """
     Remove all given buzzers from internal data representations.
@@ -301,11 +294,9 @@ async def send_reset_to_buzzer(key, device):
 async def remove_old_buzzers(to_remove):
     global device_status_map_mutex
     async with device_status_map_mutex:
-        global device_status_map
-        global device_list
+        global device_status_map        
         
         for (k,d) in to_remove:
-            # device_list.remove(d['label']) ## only for tmp ui
             device_status_map.pop(k)       
             async with device_heartbeat_map_mutex:
                 device_heartbeat_map.pop(k)
@@ -316,19 +307,38 @@ async def remove_old_buzzers(to_remove):
 """
     Send a reset message to all registered buzzers.
 """
-async def reset_buzzers():
+# async def reset_buzzers():
     
-    to_remove = []
+#     to_remove = []
+#     coroutines = []
+#     #todo: make each send a seperate task, so the resets are 'simultaneous'
+#     async with  device_status_map_mutex:
+#         for (key,device) in device_status_map.items():
+#             rem_key = await send_reset_to_buzzer(key,device)
+#             if rem_key: to_remove.append(rem_key)
+#             # coroutines.append(send_reset_to_buzzer(key,device))
 
-    #todo: make each send a seperate task, so the resets are 'simultaneous'
+#     # to_remove = await asyncio.gather(*coroutines)
+
+#     # to_remove = [result for result in to_remove if result is not None]
+    
+#     if len(to_remove) > 0: 
+#         print("TO REMOVE",to_remove)
+#         await remove_old_buzzers(to_remove)
+async def reset_buzzers():
+    """
+        Send a PUT request to reset-uris of a given device.
+    """
+    ctx = await aiocoap.Context.create_client_context()
+
     async with  device_status_map_mutex:
         for (key,device) in device_status_map.items():
-            rem_key = await send_reset_to_buzzer(key,device)
-            if rem_key: to_remove.append(rem_key)
-    
-    if len(to_remove) > 0: 
-        remove_old_buzzers(to_remove)
+            async with device['mutex']:
+                device['timestamp'] = None           
+                device['locked'] = "False" 
 
+    await send_data_multicast(ctx,"/buzzer/reset_buzzer","")
+        # return None
 
 
 """
