@@ -9,3 +9,11 @@ events = {
     "remove": "remove",
     "pairing": "pairing"
 }
+publish_port = 5556
+subscribe_port = 5555
+channels = {
+    "reset": "reset",
+    "pairing": "pairing",
+    "remove": "remove",
+    "buzzers": ""
+}
