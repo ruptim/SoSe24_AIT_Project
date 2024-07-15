@@ -1,12 +1,17 @@
-import {Chip} from "@nextui-org/chip";
+import { Chip } from "@nextui-org/chip";
 
 type QuestionCounterParams = {
-    currentCount: number,
-    maxCount: number
-}
+  currentCount: number;
+  maxCount: number;
+};
 
-export function QuestionCounter({currentCount, maxCount}: QuestionCounterParams){
-    return (
-        <Chip>{currentCount} / {maxCount}</Chip>
-    )
+export function QuestionCounter({
+  currentCount,
+  maxCount,
+}: QuestionCounterParams) {
+  return (
+    <Chip>
+      {currentCount} / {maxCount}
+    </Chip>
+  );
 }
