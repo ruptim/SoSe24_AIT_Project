@@ -11,6 +11,9 @@ for some more information."""
 from datetime import datetime
 import logging
 
+from threading import Thread
+from time import time
+
 import asyncio
 
 import aiocoap.resource as resource
@@ -24,6 +27,12 @@ from queue import Queue
 
 import re
 
+from nicegui import ui, app
+
+HEARTBEAT_INTERVAL_S = 3
+
+
+test_mode = False
 
 '''
         'dev_name':
@@ -32,30 +41,19 @@ import re
         }
 '''
 device_status_map = {}
+device_status_map_mutex = asyncio.Lock()
 
 
-class Welcome(resource.Resource):
-    representations = {
-            ContentFormat.TEXT: b"Welcome to the demo server",
-            ContentFormat.LINKFORMAT: b"</.well-known/core>,ct=40",
-            # ad-hoc for application/xhtml+xml;charset=utf-8
-            ContentFormat(65000):
-                b'<html xmlns="http://www.w3.org/1999/xhtml">'
-                b'<head><title>aiocoap demo</title></head>'
-                b'<body><h1>Welcome to the aiocoap demo server!</h1>'
-                b'<ul><li><a href="time">Current time</a></li>'
-                b'<li><a href="whoami">Report my network address</a></li>'
-                b'</ul></body></html>',
-            }
+device_list = ui.row() ## only for tmp ui
 
-    default_representation = ContentFormat.TEXT
-
-    async def render_get(self, request):
-        cf = self.default_representation if request.opt.accept is None else request.opt.accept
-        try:
-            return aiocoap.Message(payload=self.representations[cf], content_format=cf)
-        except KeyError:
-            raise aiocoap.error.UnsupportedContentFormat
+class status_label(ui.label): ## only for tmp ui
+    def _handle_text_change(self, text: str) -> None:
+        # super()._handle_text_change(text)
+        if text == 'False':
+            self.style("color:green")
+        else:
+            self.style("color:red")
+    
 
 
 
@@ -96,21 +94,31 @@ class ButtonRegisterResource(resource.Resource):
     def __init__(self):
         super().__init__()
 
-    def send_registered_name(self,ep):
+    async def send_registered_name(self,ep):
         device_count = len(device_status_map)
         register_name = f"buzzer{device_count}"
         
-        device_status_map[register_name] = {
-            'endpoint': ep,
-            'register_time': datetime.now(),
-            'ts_queue': asyncio.Queue(),
-            'mutex': asyncio.locks.Lock()
+        l = None        
+        with device_list: ## only for tmp ui
+            l = status_label(register_name) 
+            l.style('color:red') 
+        
+        async with device_status_map_mutex:
+            device_status_map[register_name] = {
+                'endpoint': ep,
+                'register_time': datetime.now(),
+                'ts_queue': asyncio.Queue(),
+                'mutex': asyncio.locks.Lock(),
+                'label': l, ## only for tmp ui
+                "locked": "True"
 
-        }
+            }
+            l.bind_text_from(device_status_map[register_name],'locked') ## only for tmp ui
+            
         
         return aiocoap.Message(code=aiocoap.CHANGED,payload=register_name.encode('ascii'))
 
-    def register_device(self, request):
+    async def register_device(self, request):
         payload = request.payload.decode('ascii')
         if len(payload): 
             entry = device_status_map.get(payload)
@@ -121,14 +129,14 @@ class ButtonRegisterResource(resource.Resource):
 
             # if requested name is not found, send new one                 
 
-        return self.send_registered_name(request.remote.uri_base)
+        return await self.send_registered_name(request.remote.uri_base) 
 
             
 
     
     async def render_put(self, request):
         print('PUT payload: %s' % request.payload)
-        return self.register_device(request)
+        return await self.register_device(request)
      
 
 class ButtonPressedResource(resource.Resource):
@@ -152,10 +160,16 @@ class ButtonPressedResource(resource.Resource):
         device_id = matches[0]
         time_stamp = datetime.fromisoformat(matches[1])
         
-        if (device_status_map.get(device_id)):
-            async with device_status_map[device_id]['mutex']:
-                await device_status_map[device_id]['ts_queue'].put(time_stamp)
+        async with device_status_map_mutex:
+            if (device_status_map.get(device_id)):
+                async with device_status_map[device_id]['mutex']:
+                    await device_status_map[device_id]['ts_queue'].put(time_stamp)
+                    device_status_map[device_id]['locked'] = "True"
         #TODO: else: send error response!! 
+            
+            # in test mode: respond with reset right away
+            if test_mode:
+                send_reset_to_buzzer(device_id,device_status_map[device_id])
         
 
     async def render_put(self, request):
@@ -164,6 +178,22 @@ class ButtonPressedResource(resource.Resource):
 
         return aiocoap.Message(code=aiocoap.CHANGED)
 
+class HeartbeatResource(resource.Resource):
+    """ 
+        Resource for endpoints to send a heartbeat to.
+    """ 
+
+    def __init__(self):
+        super().__init__()
+
+    async def render_put(self, request):
+        device_id = request.payload.decode("utf-8")
+        print('HEARTBEAT received of %s' % device_id)
+        async with device_status_map_mutex:
+            if (device_status_map.get(device_id)):
+                device_status_map[device_id]['last_heartbeat'] = time()
+                
+        return aiocoap.Message(code=aiocoap.CHANGED)
 
 
 async def send_data(ctx,uri,payload):
@@ -173,27 +203,59 @@ async def send_data(ctx,uri,payload):
     return resp
 
 
-async def reset_buzzers():
+async def send_reset_to_buzzer(key, device):
     ctx = await aiocoap.Context.create_client_context()
+    
+    try:
+        response = await send_data(ctx, f"{device['endpoint']}/buzzer/reset_buzzer",payload="")
+        async with device['mutex']:
+            device['ts_queue'] = asyncio.Queue()            
+            device['locked'] = "False" 
 
+    except aiocoap.error.NetworkError:
+        return key
+    return None
+    
+
+async def reset_buzzers():
+
+    
     to_remove = []
 
-
     #todo: make each send a seperate task, so the resets are 'simultaneous'
-    for (key,device) in device_status_map.items():
-        try:
-            response = await send_data(ctx, f"{device['endpoint']}/buzzer/reset_buzzer",payload="")
+    async with  device_status_map_mutex:
+        for (key,device) in device_status_map.items():
+            rem_key = await send_reset_to_buzzer(key,device)
+            if rem_key: to_remove.append(rem_key)
 
-            async with device['mutex']:
-                device['ts_queue'] = asyncio.Queue()
-        # if response.code == CHANGED:
-        #     pass # success
-        except aiocoap.error.NetworkError:
-            to_remove.append(key)
+        for k in to_remove:
+            device_status_map.pop(k)       
+            print(f"REMOVED: {k}") 
 
-    for k in to_remove:
-        device_status_map.pop(k)       
-        print(f"REMOVED: {k}") 
+
+async def heartbeat_monitor_routine():
+
+    while True:
+        to_remove = []
+        start_time = time()
+
+        async with device_status_map_mutex:
+            for (dev_id,dev) in device_status_map.items():
+                if abs(start_time - dev['last_heartbeat']) > HEARTBEAT_INTERVAL_S:
+                    to_remove.append((dev_id,dev))
+
+        for (k,d) in to_remove:
+            device_list.remove(d['label']) ## only for tmp ui
+            device_status_map.pop(k)       
+            print(f"REMOVED: {k}") 
+
+
+                
+
+        check_time = time() - start_time
+        sleep_time = HEARTBEAT_INTERVAL_S-check_time
+        
+        await asyncio.sleep(sleep_time)
 
 
 # logging setup
@@ -211,6 +273,7 @@ async def main():
     root.add_resource(['b','0'], ButtonResource())
     root.add_resource(['b','pressed'], ButtonPressedResource())
     root.add_resource(['b','register'], ButtonRegisterResource())
+    root.add_resource(['b','heartbeat'], HeartbeatResource())
 
     server_ctx = await Context.create_server_context(root,bind=("::",9993))
   
@@ -219,9 +282,22 @@ async def main():
     rd_rg = rd_register.Registerer(context=server_ctx,rd=RD)
 
    
-
+    asyncio.create_task(heartbeat_monitor_routine())
     # Run forever
     await asyncio.get_running_loop().create_future()
 
-if __name__ == "__main__":
-    asyncio.run(main())
+def toggle_test_mode():
+    global test_mode
+    test_mode = not test_mode
+
+if __name__ in {"__main__", "__mp_main__"}:
+    # asyncio.run(main()) ## to run without ui 
+
+
+    ui.button('Reset buzzers', on_click=reset_buzzers)
+    ui.checkbox('Test mode', on_change=toggle_test_mode)
+
+    app.on_startup(main)
+
+    ui.run(host="192.168.69.111",port=9080)
+
