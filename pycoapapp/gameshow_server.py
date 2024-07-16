@@ -219,16 +219,20 @@ class ButtonPressedResource(resource.Resource):
         # time_stamp = datetime.fromisoformat(matches[1])
         time_stamp = matches[1]
         
+        send = False
         async with device_status_map_mutex:
             if (device_status_map.get(device_id)):
                 async with device_status_map[device_id]['mutex']:
-                    device_status_map[device_id]['timestamp'] = time_stamp
-                    device_status_map[device_id]['locked'] = "True"
+                    if not device_status_map[device_id]['timestamp']:
+                        device_status_map[device_id]['timestamp'] = time_stamp
+                        device_status_map[device_id]['locked'] = "True"
+                        send = True
+                        print(f'Buzzer {device_id} send: %s' % time_stamp)
         #TODO: else: send error response!! 
-        ui_backend_sender.send_buzzer_info()
+        if send: ui_backend_sender.send_buzzer_info()
 
     async def render_put(self, request):
-        print('PUT payload: %s' % request.payload)
+        # print('PUT payload: %s' % request.payload)
         asyncio.create_task(self.set_content(request.payload.decode('ascii')))
 
         return aiocoap.Message(code=aiocoap.CREATED)
@@ -371,6 +375,7 @@ async def main():
 
    
     asyncio.create_task(heartbeat_monitor_routine())
+    
     # Run forever
     await asyncio.get_running_loop().create_future()
 
