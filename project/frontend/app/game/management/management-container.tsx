@@ -15,10 +15,6 @@ type ManagementContainerParams = {
 export function ManagementContainer({ buzzers, onBuzzerDelete }: ManagementContainerParams) {
   const [isPairing, setPairing] = useState(false);
 
-  // useEffect(() => {
-  //   setPairing(false);
-  // }, [buzzers]);
-
   function connectModalOpened() {
     setPairing(true);
     socket.emit(backendConfig.events.pairing, true);
@@ -46,7 +42,7 @@ export function ManagementContainer({ buzzers, onBuzzerDelete }: ManagementConta
           <EditBuzzersButton buzzers={buzzers} onDeleteClick={deleteBuzzer} />
         </div>
         <div>
-          <UploadQuestionModal></UploadQuestionModal>
+          {/*<UploadQuestionModal></UploadQuestionModal>*/}
         </div>
       </div>
   );
