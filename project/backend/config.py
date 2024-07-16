@@ -9,6 +9,7 @@ events = {
     "remove": "remove",
     "pairing": "pairing"
 }
+backend_hostname = '192.168.2.237'
 publish_port = 5556
 subscribe_port = 5555
 channels = {

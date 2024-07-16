@@ -114,7 +114,7 @@ def mapBuzzers(buzzer_list):
 
         if obj["timestamp"] is not None and current_timestamp is not None:
             timestamp = datetime.strptime(obj["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
-            delay = current_timestamp - timestamp
+            delay = timestamp - current_timestamp
             transformed_obj["delay"] = delay.total_seconds()  # Calculating delay
         else:
             transformed_obj["delay"] = None
@@ -139,7 +139,7 @@ def initSubscriber():
 
     context = zmq.Context()
     subscriberSocket = context.socket(zmq.SUB)
-    subscriberSocket.connect(f"tcp://{config.hostname}:{config.subscribe_port}")
+    subscriberSocket.connect(f"tcp://{config.backend_hostname}:{config.subscribe_port}")
     subscriberSocket.setsockopt_string(zmq.SUBSCRIBE, config.channels["buzzers"])
 
     print(f"SUBSCRIBE connected to channel \"{config.channels['buzzers']}\"\n")
@@ -148,6 +148,8 @@ def initSubscriber():
         try:
             msg_json = subscriberSocket.recv_json()
             print("SUBSCRIBE message received")
+
+            print(msg_json)
 
             send_buzzers_to_ui(msg_json)
 
