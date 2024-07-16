@@ -15,11 +15,16 @@
 char buzzer_heartbeat_thread_stack[THREAD_STACKSIZE_DEFAULT];
 
 
+mutex_t coap_send_mutex = MUTEX_INIT;
+
 // const char uri_base[128] = "coap://[fe80::d07c:fc5d:2474:4dba]:9993";
 // char uri_base[128] = "coap://[2001:67c:254:b0b2:affe:4000:0:1]:9993";
 char uri_base[128] = "";
+
 char sntp_server[128];
 char buzzer_id[MAX_BUZZER_ID_LEN];
+int buzzer_id_num = -1;
+
 bool buzzer_id_received = false;
 
 bool hb_timeout = false;
@@ -80,7 +85,9 @@ void send_data(const char* uri_base, const char* path, const void* payload, size
 
     len += coap_payload_put_bytes(&pdu,payload, payload_len);
 
-    gcoap_req_send(buf,len,&remote,resp_handler,context,0);
+    mutex_lock(&coap_send_mutex);
+    DEBUG("REQ SEND: %d\n",gcoap_req_send(buf,len,&remote,resp_handler,context, GCOAP_SOCKET_TYPE_UDP));
+    mutex_unlock(&coap_send_mutex);
 
 }
 
@@ -132,18 +139,18 @@ void _data_send_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
 
 
     /* response timeout or error in response */
-    // if (memo->state == GCOAP_MEMO_TIMEOUT || memo->state != GCOAP_MEMO_RESP)
-    // {
-    //     kernel_pid_t *main_thread_pid = (kernel_pid_t *)memo->context;
-    //     msg_t msg;
-    //     msg.content.value = EVENT_NOT_CONNECTED;
-    //     set_connection_lost(true);
+    if (memo->state == GCOAP_MEMO_TIMEOUT || memo->state != GCOAP_MEMO_RESP)
+    {
+        // kernel_pid_t *main_thread_pid = (kernel_pid_t *)memo->context;
+        // msg_t msg;
+        // msg.content.value = EVENT_NOT_CONNECTED;
+        // set_connection_lost(true);
 
-    //     msg_send(&msg, *main_thread_pid);
+        // msg_send(&msg, *main_thread_pid);
 
-    //     DEBUG("MSG TCONNECTION LOST\n");
-    //     return;
-    // }
+        DEBUG("MSG Request timeouted\n");
+        return;
+    }
 
 }
 

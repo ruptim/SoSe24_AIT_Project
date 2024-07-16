@@ -81,7 +81,7 @@ void not_connected_mode(void){
 
 void enable_connected(void){
     set_connection_status(true);
-    start_heartbeat_routine(&rcv_pid);
+    // start_heartbeat_routine(&rcv_pid);
 }
 
 void pairing_mode(void){

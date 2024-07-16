@@ -16,6 +16,8 @@
 #include "periph/gpio.h"
 #include "ztimer.h"
 #include "mutex.h"
+// #include "random.h"
+
 
 #define MAX_RESOURCES 10
 
@@ -54,7 +56,7 @@ bool buzzer_not_connected_mode = true;
 bool buzzer_pairing_mode = false;
 bool buzzer_pairing_mode_timeout = false;
 bool buzzer_locked = false;
-bool    switch_activated = false;
+bool switch_activated = false;
 
 mutex_t buzzer_mutex = MUTEX_INIT;
 ztimer_t long_press_timer;
@@ -140,6 +142,14 @@ void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
     DEBUG("SENDING: %s\n", payload);
     (void) main_thread_pid;
 
+    // variante 1: unterschiedliche wartezeiten. 
+    // variante 2: mehrmals hintereinander senden. 
+
+    /* wait a moment to avoid collisions or overlaoding the master */
+    ztimer_acquire(ZTIMER_MSEC);
+    ztimer_sleep(ZTIMER_MSEC,(buzzer_id_num%4)*10);
+    ztimer_release(ZTIMER_MSEC);
+
     send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _data_send_resp_handler, (void *)main_thread_pid, false);
 }
 
@@ -193,6 +203,7 @@ void pair_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
     {
         DEBUG("[INFO] Registered name: %s\n",payload);
         memcpy(buzzer_id, payload, MAX_BUZZER_ID_LEN);
+        buzzer_id_num = buzzer_id[strlen(buzzer_id)-1] - '0';
         buzzer_id_received = true;
     }
 
