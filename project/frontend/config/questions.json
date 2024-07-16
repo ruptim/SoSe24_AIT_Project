@@ -1,0 +1,70 @@
+{
+  "questions": [
+    {
+      "question": "Seine Mutter, die umarmt er – seine Partnerin, die ...?",
+      "options": [
+        {
+          "optionText": "pfar er",
+          "isCorrect": false
+        },
+        {
+          "optionText": "kardinn al",
+          "isCorrect": false
+        },
+        {
+          "optionText": "passt or",
+          "isCorrect": false
+        },
+        {
+          "optionText": "küsst er",
+          "isCorrect": true
+        }
+      ],
+      "answer": "https://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
+    },
+    {
+      "question": "Wen gewisse Umstände misstrauisch gemacht haben, der kommt zu der Vermutung „Hier ist etwas ...“?",
+      "options": [
+        {
+          "optionText": "müde",
+          "isCorrect": false
+        },
+        {
+          "optionText": "bequem",
+          "isCorrect": false
+        },
+        {
+          "optionText": "träge",
+          "isCorrect": false
+        },
+        {
+          "optionText": "faul",
+          "isCorrect": true
+        }
+      ],
+      "answer": "https://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
+    },
+    {
+      "question": "Was machen nicht nur Musiker, wenn sie jemanden scharf zurechtweisen?",
+      "options": [
+        {
+          "optionText": "Meinung geigen",
+          "isCorrect": true
+        },
+        {
+          "optionText": "Standpunkt flöten",
+          "isCorrect": false
+        },
+        {
+          "optionText": "Ansicht trommeln",
+          "isCorrect": false
+        },
+        {
+          "optionText": "Auffassung orgeln",
+          "isCorrect": false
+        }
+      ],
+      "answer": "https://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
+    }
+  ]
+}

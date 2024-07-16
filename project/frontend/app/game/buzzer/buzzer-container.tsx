@@ -38,7 +38,6 @@ export function BuzzerContainer({
       </div>
       <div className={"flex flex-row justify-center gap-5 mt-5"}>
         <BuzzerResetButton onResetClick={onResetClick} />
-        <BuzzerLockButton isActive={isAllLocked} onLockClick={onLockClick} />
       </div>
     </div>
   );

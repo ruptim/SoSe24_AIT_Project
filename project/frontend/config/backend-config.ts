@@ -1,5 +1,5 @@
 export const backendConfig = {
-  hostUrl: "http://localhost:5000",
+  hostUrl: "http://localhost:5001",
   events: {
     connect: "connect",
     disconnect: "disconnect",

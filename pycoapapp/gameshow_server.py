@@ -47,7 +47,7 @@ HEARTBEAT_INTERVAL_S = 4
 
 
 
-paring_mode_enabled = False
+paring_mode_enabled = False ### change to False
 max_device_num_lock = asyncio.Lock()
 max_device_num = 0
 
@@ -57,6 +57,9 @@ device_status_map_mutex = asyncio.Lock()
 device_heartbeat_map = {}
 device_heartbeat_map_mutex = asyncio.Lock()
 
+
+
+DEBUG_DONT_SEND_ZMQ = False
 
 class DataSender():
     """
@@ -84,7 +87,9 @@ class DataSender():
         self.send(data)
 
     def send_buzzer_info(self):
-        asyncio.create_task(self._send_buzzer_list())
+        
+        if not DEBUG_DONT_SEND_ZMQ:
+            asyncio.create_task(self._send_buzzer_list())
         
 ui_backend_sender = DataSender()
 
@@ -151,7 +156,7 @@ class ButtonRegisterResource(resource.Resource):
             print(f"ADDED NEW BUZZER {register_name}")
 
             async with device_heartbeat_map_mutex:
-                device_heartbeat_map[register_name] = {"last_heartbeat":time()}
+                device_heartbeat_map[register_name] = {"last_heartbeat":time() + HEARTBEAT_INTERVAL_S}
 
             ui_backend_sender.send_buzzer_info()
             
