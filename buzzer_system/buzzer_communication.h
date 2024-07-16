@@ -18,6 +18,7 @@
 extern char sntp_server[128];
 extern char uri_base[128];
 extern char buzzer_id[MAX_BUZZER_ID_LEN];
+extern int buzzer_id_num;
 extern bool buzzer_id_received;
 
 
