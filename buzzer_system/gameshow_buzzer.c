@@ -31,6 +31,7 @@
 #define MAX_SNTP_ATTEMPS 5
 #define MAX_PAIRING_ATTEMPS 1
 
+#define BUZZER_PRESSED_RESEND_DEALY_MS 100
 #define PAIRING_MODE_PRESS_DELAY_MS 2000
 #define RE_PAIRING_MODE_PRESS_DELAY_MS 5000
 #define PAIRING_MODE_DEBOUNCE_TIME_MS 10
@@ -128,6 +129,34 @@ void set_connection_status(bool connected)
 void start_heartbeat_routine(kernel_pid_t *main_thread_pid){
     start_heartbeat(main_thread_pid);
 }
+bool pressed_not_timeouted = false;
+void _pressed_send_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
+                             const sock_udp_ep_t *remote)
+{
+    (void)pdu;
+    (void)remote;
+    (void)memo;
+    kernel_pid_t *thread_pid = (kernel_pid_t *)memo->context;
+    
+
+    /* response timeout or error in response */
+    if (memo->state == GCOAP_MEMO_TIMEOUT || memo->state != GCOAP_MEMO_RESP)
+    {
+        // msg_t msg;
+        // msg.content.value = EVENT_NOT_CONNECTED;
+        // set_connection_lost(true);
+
+        // msg_send(&msg, *main_thread_pid);
+        thread_wakeup(*thread_pid);
+
+        DEBUG("MSG Request timeouted\n");
+        return;
+    }
+
+    pressed_not_timeouted = true;
+    thread_wakeup(*thread_pid);
+
+}
 
 void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
 {                       
@@ -150,7 +179,21 @@ void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
     ztimer_sleep(ZTIMER_MSEC,(buzzer_id_num%4)*10);
     ztimer_release(ZTIMER_MSEC);
 
-    send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _data_send_resp_handler, (void *)main_thread_pid, false);
+    kernel_pid_t own_pid = thread_getpid();
+    
+    pressed_not_timeouted = false;
+
+    for(int i =0; i <2; i++){
+        if (!pressed_not_timeouted){
+            send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _pressed_send_resp_handler, (void *)&own_pid, false);
+            // ztimer_acquire(ZTIMER_MSEC);
+            // ztimer_sleep(ZTIMER_MSEC,BUZZER_PRESSED_RESEND_DEALY_MS);
+            // ztimer_release(ZTIMER_MSEC);
+            thread_sleep();
+
+        }
+    }
+
 }
 
 

@@ -85,9 +85,12 @@ void send_data(const char* uri_base, const char* path, const void* payload, size
 
     len += coap_payload_put_bytes(&pdu,payload, payload_len);
 
-    mutex_lock(&coap_send_mutex);
-    DEBUG("REQ SEND: %d\n",gcoap_req_send(buf,len,&remote,resp_handler,context, GCOAP_SOCKET_TYPE_UDP));
-    mutex_unlock(&coap_send_mutex);
+    // mutex_lock(&coap_send_mutex);
+    int r = gcoap_req_send(buf,len,&remote,resp_handler,context, GCOAP_SOCKET_TYPE_UDP);
+    if(r == 0){
+        DEBUG("REQ SEND failed\n");
+    }
+    // mutex_unlock(&coap_send_mutex);
 
 }
 
