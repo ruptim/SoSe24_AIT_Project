@@ -182,17 +182,23 @@ void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
     kernel_pid_t own_pid = thread_getpid();
     
     pressed_not_timeouted = false;
-
-    for(int i =0; i <2; i++){
-        if (!pressed_not_timeouted){
+    send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _pressed_send_resp_handler, (void *)&own_pid, false);
+    thread_sleep();
+     if (!pressed_not_timeouted){
             send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _pressed_send_resp_handler, (void *)&own_pid, false);
-            // ztimer_acquire(ZTIMER_MSEC);
-            // ztimer_sleep(ZTIMER_MSEC,BUZZER_PRESSED_RESEND_DEALY_MS);
-            // ztimer_release(ZTIMER_MSEC);
-            thread_sleep();
 
         }
-    }
+
+    // for(int i =0; i <2; i++){
+    //     if (!pressed_not_timeouted){
+    //         send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _pressed_send_resp_handler, (void *)&own_pid, false);
+    //         // ztimer_acquire(ZTIMER_MSEC);
+    //         // ztimer_sleep(ZTIMER_MSEC,BUZZER_PRESSED_RESEND_DEALY_MS);
+    //         // ztimer_release(ZTIMER_MSEC);
+    //         thread_sleep();
+
+    //     }
+    // }
 
 }
 
@@ -453,7 +459,7 @@ void get_iso8601_time(char *buffer, size_t buffer_size)
     // Convert seconds since epoch to tm structure
     // gmtime_r(&seconds, tm_info);
     tm_info = gmtime(&seconds);
-    // tm_info->tm_hour += TIME_ZONE_OFFSET_HOUR;
+    tm_info->tm_hour += TIME_ZONE_OFFSET_HOUR;
     tm_fill_derived_values(tm_info);
 
     (void) seconds;
