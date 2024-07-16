@@ -37,7 +37,7 @@ export function ActivityContainer({ buzzers}: ActivityParams) {
 
   function handleBuzzerDelete( buzzer: BuzzerType){
     console.log('Send remove for ' + buzzer);
-    socket.emit(backendConfig.events.remove, buzzer);
+    socket.emit(backendConfig.events.remove, JSON.stringify(buzzer));
   }
 
   return (
