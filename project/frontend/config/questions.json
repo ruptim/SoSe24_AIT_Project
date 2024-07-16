@@ -1,0 +1,19 @@
+{
+  "questions": [
+    {
+      "question": "This is a question",
+      "options": [],
+      "answer": "This is the text answer"
+    },
+    {
+      "question": "This question has answer options?",
+      "options": [
+        "Option A",
+        "Option B",
+        "Option C",
+        "Option D"
+      ],
+      "answer": "B + Explanation"
+    }
+  ]
+}
