@@ -1,63 +1,70 @@
 {
   "questions": [
     {
-      "question": "Was ist das Internet der Dinge (IoT) 2?",
+      "question": "Seine Mutter, die umarmt er – seine Partnerin, die ...?",
       "options": [
         {
-          "optionText": "Option A",
+          "optionText": "pfar er",
           "isCorrect": false
         },
         {
-          "optionText": "Option B",
-          "isCorrect": true
-        },
-        {
-          "optionText": "Option C",
+          "optionText": "kardinn al",
           "isCorrect": false
         },
         {
-          "optionText": "Option D",
-          "isCorrect": false
-        }
-      ],
-      "answer": "Das IoT ist ein Netzwerk physischer Objekte oder Personen, die mit Software, Elektronik, Netzwerken und Sensoren ausgestattet sind. Diese Objekte sammeln und tauschen Daten aus, um sie intelligenter und effizienter zu machen."
-    },
-    {
-      "question": "Was sind die grundlegenden Komponenten eines IoT-Systems?",
-      "options": [
-        {
-          "optionText": "Option A",
+          "optionText": "passt or",
           "isCorrect": false
         },
         {
-          "optionText": "Option B",
-          "isCorrect": true
-        },
-        {
-          "optionText": "Option C",
-          "isCorrect": false
-        },
-        {
-          "optionText": "Option D",
+          "optionText": "küsst er",
           "isCorrect": true
         }
       ],
-      "answer": "Die vier grundlegenden Komponenten sind Sensoren/Devices, Konnektivität, Datenverarbeitung und Benutzeroberfläche."
+      "answer": "https://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
     },
     {
-      "question": "Was ist der Unterschied zwischen IoT und IIoT?",
-      "options": [],
-      "answer": "IoT ist auf kundenorientierte Anwendungen ausgerichtet, während IIoT industrielle Anwendungen unterstützt. IIoT verwendet sowohl drahtgebundene als auch drahtlose Kommunikation und bietet hochwertige Daten."
+      "question": "Wen gewisse Umstände misstrauisch gemacht haben, der kommt zu der Vermutung „Hier ist etwas ...“?",
+      "options": [
+        {
+          "optionText": "müde",
+          "isCorrect": false
+        },
+        {
+          "optionText": "bequem",
+          "isCorrect": false
+        },
+        {
+          "optionText": "träge",
+          "isCorrect": false
+        },
+        {
+          "optionText": "faul",
+          "isCorrect": true
+        }
+      ],
+      "answer": "https://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
     },
     {
-      "question": "Was ist Raspberry Pi?",
-      "options": [],
-      "answer": "Raspberry Pi ist ein Computer, der ähnlich wie ein herkömmlicher Computer funktioniert. Er verfügt über Funktionen wie WLAN, GPIO-Pins und Bluetooth zur Kommunikation mit externen Geräten."
-    },
-    {
-      "question": "Wie läuft Raspberry Pi im Headless-Modus?",
-      "options": [],
-      "answer": "Raspberry Pi kann im Headless-Modus über SSH betrieben werden. Das neueste Betriebssystem verfügt über einen integrierten VNC-Server für die Fernsteuerung."
+      "question": "Was machen nicht nur Musiker, wenn sie jemanden scharf zurechtweisen?",
+      "options": [
+        {
+          "optionText": "Meinung geigen",
+          "isCorrect": true
+        },
+        {
+          "optionText": "Standpunkt flöten",
+          "isCorrect": false
+        },
+        {
+          "optionText": "Ansicht trommeln",
+          "isCorrect": false
+        },
+        {
+          "optionText": "Auffassung orgeln",
+          "isCorrect": false
+        }
+      ],
+      "answer": "https://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
     }
   ]
 }
