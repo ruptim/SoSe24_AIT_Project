@@ -35,7 +35,9 @@ export function Question({ question, answer, options, isExpanded, onExpansionCha
         <p className={title()}>{question}</p>
         <div className="flex flex-row justify-center gap-5 mt-10">
           {options?.map((option, index) => (
-            <><Chip key={index} color="secondary" variant={(isExpanded && option.isCorrect) ? "solid" : "bordered"} size="lg">{indexToLetter(index)}: {option.optionText}</Chip></>
+            <div key={index}>
+              <Chip key={index} color="secondary" variant={(isExpanded && option.isCorrect) ? "solid" : "bordered"} size="lg">{indexToLetter(index)}: {option.optionText}</Chip>
+            </div>
           ))}
         </div>
       </>
