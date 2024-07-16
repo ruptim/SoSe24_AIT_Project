@@ -28,7 +28,7 @@ export function Buzzer({
           {buzzerRank ? `#${buzzerRank}` : ""}
         </small>
         <small className="text-default-500">
-          {delay?.toFixed(3)} {delay ? "s" : ""}
+          {delay?.toFixed(6)} {delay ? "s" : ""}
         </small>
       </CardHeader>
       <CardBody>
