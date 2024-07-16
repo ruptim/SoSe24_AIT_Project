@@ -13,6 +13,7 @@ app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins='*')
 
 current_timestamp: datetime = None
+smallest_timestamp: datetime = None
 
 @socketio.on('connect')
 def connect():
@@ -37,11 +38,13 @@ def reset():
     """
     Resets all buzzers to not be pressed anymore
     """
-    global publisherSocket, current_timestamp
+    global publisherSocket, current_timestamp, smallest_timestamp
 
     print('Received RESET')
     current_timestamp = datetime.now()
+    smallest_timestamp = None
     print(current_timestamp)
+    print('reset smallest timestamp')
 
     publisherSocket.send_string("%s" % (config.channels['reset']))
 
@@ -100,8 +103,10 @@ def mapBuzzers(buzzer_list):
     :param buzzer_list: The deserialized list of buzzers
     :return:
     """
-    global current_timestamp
+    global current_timestamp, smallest_timestamp
     result = []
+
+    smallest_timestamp = calc_smallest_timestamp(buzzer_list)
 
     for obj in buzzer_list:
         transformed_obj = {
@@ -109,19 +114,44 @@ def mapBuzzers(buzzer_list):
             "buzzerName": obj["buzzerName"],
             "isPressed": obj["timestamp"] is not None,  # Set to True if timestamp is provided
             "isLocked": False,
-            "delay": None
+            "delay": None,
+            "delay_local": None
         }
 
         if obj["timestamp"] is not None and current_timestamp is not None:
             timestamp = datetime.strptime(obj["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
             delay = timestamp - current_timestamp
+            delay_local = timestamp - smallest_timestamp
             transformed_obj["delay"] = delay.total_seconds()  # Calculating delay
+            transformed_obj["delay_local"] = delay_local.total_seconds()
         else:
             transformed_obj["delay"] = None
+            transformed_obj["delay_local"] = None
 
         result.append(transformed_obj)
 
     return result
+
+def calc_smallest_timestamp(objects):
+
+    # Filter objects that have 'timestamp' attribute
+    objects_with_timestamp = [obj for obj in objects if obj.get('timestamp')]
+
+    # Initialize the smallest timestamp as the timestamp of the first object
+    smallest = datetime.strptime(objects_with_timestamp[0]["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
+
+    # Iterate over the objects in the list
+    for obj in objects_with_timestamp:
+
+        if obj["timestamp"]:
+            timestamp = datetime.strptime(obj["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
+            # If the current object's timestamp is smaller than the smallest found so far
+            if timestamp < smallest:
+                # Update the smallest timestamp
+                smallest = datetime.strptime(obj["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
+
+    # Return the smallest timestamp
+    return smallest
 
 
 def initPublisher():

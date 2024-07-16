@@ -65,6 +65,64 @@
         }
       ],
       "answer": "https://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
+    },
+    {
+      "question": "Wie viele Weihnachtsbäume werden in Deutschland pro Jahr verkauft?",
+      "options": [
+      ],
+      "answer": "ca. 30 Millionen\nhttps://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
+    }
+  ,
+    {
+      "question": "Welche ist keine der view Basen der DNA?",
+      "options": [
+        {
+          "optionText": "Adenin",
+          "isCorrect": false
+        },
+        {
+          "optionText": "Guanin",
+          "isCorrect": false
+        },
+        {
+          "optionText": "Thymin",
+          "isCorrect": false
+        },
+        {
+          "optionText": "Kerosin",
+          "isCorrect": true
+        }
+      ],
+      "answer": "ca. 30 Millionen\nhttps://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
+    },
+    {
+      "question": "Wie viele Tasten hat ein Klavier?",
+      "options": [
+      ],
+      "answer": "88\nhttps://www.rnd.de/medien/wer-wird-millionaer-fragen-und-antworten-der-letzten-sendung-montag-27-5-2024-UZ7COMBJGFAE3DIVNJD2RJRNSU.html#frage-1-50-euro"
+    }
+  ,
+    {
+      "question": "Welche Note bekommen alle Teilnehmer des Moduls AIT?",
+      "options": [
+        {
+          "optionText": "15 Punkte",
+          "isCorrect": true
+        },
+        {
+          "optionText": "15 Punkte",
+          "isCorrect": true
+        },
+        {
+          "optionText": "15 Punkte",
+          "isCorrect": true
+        },
+        {
+          "optionText": "15 Punkte",
+          "isCorrect": true
+        }
+      ],
+      "answer": "Selbstverständlich, oder? :)"
     }
   ]
 }
