@@ -46,6 +46,7 @@ export function QuestionContainer({ questions }: QuestionContainerParams) {
       <Question
         answer={currentQuestion.answer}
         question={currentQuestion.question}
+        options={currentQuestion.options}
         isExpanded={isAnswerExpanded}
         onExpansionChange={onAnswerExpansionChange}
       />
