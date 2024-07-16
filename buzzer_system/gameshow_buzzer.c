@@ -16,6 +16,8 @@
 #include "periph/gpio.h"
 #include "ztimer.h"
 #include "mutex.h"
+// #include "random.h"
+
 
 #define MAX_RESOURCES 10
 
@@ -29,6 +31,7 @@
 #define MAX_SNTP_ATTEMPS 5
 #define MAX_PAIRING_ATTEMPS 1
 
+#define BUZZER_PRESSED_RESEND_DEALY_MS 100
 #define PAIRING_MODE_PRESS_DELAY_MS 2000
 #define RE_PAIRING_MODE_PRESS_DELAY_MS 5000
 #define PAIRING_MODE_DEBOUNCE_TIME_MS 10
@@ -54,7 +57,7 @@ bool buzzer_not_connected_mode = true;
 bool buzzer_pairing_mode = false;
 bool buzzer_pairing_mode_timeout = false;
 bool buzzer_locked = false;
-bool    switch_activated = false;
+bool switch_activated = false;
 
 mutex_t buzzer_mutex = MUTEX_INIT;
 ztimer_t long_press_timer;
@@ -126,6 +129,34 @@ void set_connection_status(bool connected)
 void start_heartbeat_routine(kernel_pid_t *main_thread_pid){
     start_heartbeat(main_thread_pid);
 }
+bool pressed_not_timeouted = false;
+void _pressed_send_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
+                             const sock_udp_ep_t *remote)
+{
+    (void)pdu;
+    (void)remote;
+    (void)memo;
+    kernel_pid_t *thread_pid = (kernel_pid_t *)memo->context;
+    
+
+    /* response timeout or error in response */
+    if (memo->state == GCOAP_MEMO_TIMEOUT || memo->state != GCOAP_MEMO_RESP)
+    {
+        // msg_t msg;
+        // msg.content.value = EVENT_NOT_CONNECTED;
+        // set_connection_lost(true);
+
+        // msg_send(&msg, *main_thread_pid);
+        thread_wakeup(*thread_pid);
+
+        DEBUG("MSG Request timeouted\n");
+        return;
+    }
+
+    pressed_not_timeouted = true;
+    thread_wakeup(*thread_pid);
+
+}
 
 void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
 {                       
@@ -140,7 +171,35 @@ void send_buzzer_pressed(kernel_pid_t *main_thread_pid)
     DEBUG("SENDING: %s\n", payload);
     (void) main_thread_pid;
 
-    send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _data_send_resp_handler, (void *)main_thread_pid, false);
+    // variante 1: unterschiedliche wartezeiten. 
+    // variante 2: mehrmals hintereinander senden. 
+
+    /* wait a moment to avoid collisions or overlaoding the master */
+    ztimer_acquire(ZTIMER_MSEC);
+    ztimer_sleep(ZTIMER_MSEC,(buzzer_id_num%4)*10);
+    ztimer_release(ZTIMER_MSEC);
+
+    kernel_pid_t own_pid = thread_getpid();
+    
+    pressed_not_timeouted = false;
+    send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _pressed_send_resp_handler, (void *)&own_pid, false);
+    thread_sleep();
+     if (!pressed_not_timeouted){
+            send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _pressed_send_resp_handler, (void *)&own_pid, false);
+
+        }
+
+    // for(int i =0; i <2; i++){
+    //     if (!pressed_not_timeouted){
+    //         send_data(uri_base, BUZZER_SERVER_PRESSED_URI, (void *)payload, strlen(payload), _pressed_send_resp_handler, (void *)&own_pid, false);
+    //         // ztimer_acquire(ZTIMER_MSEC);
+    //         // ztimer_sleep(ZTIMER_MSEC,BUZZER_PRESSED_RESEND_DEALY_MS);
+    //         // ztimer_release(ZTIMER_MSEC);
+    //         thread_sleep();
+
+    //     }
+    // }
+
 }
 
 
@@ -193,6 +252,7 @@ void pair_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
     {
         DEBUG("[INFO] Registered name: %s\n",payload);
         memcpy(buzzer_id, payload, MAX_BUZZER_ID_LEN);
+        buzzer_id_num = buzzer_id[strlen(buzzer_id)-1] - '0';
         buzzer_id_received = true;
     }
 
@@ -399,7 +459,7 @@ void get_iso8601_time(char *buffer, size_t buffer_size)
     // Convert seconds since epoch to tm structure
     // gmtime_r(&seconds, tm_info);
     tm_info = gmtime(&seconds);
-    // tm_info->tm_hour += TIME_ZONE_OFFSET_HOUR;
+    tm_info->tm_hour += TIME_ZONE_OFFSET_HOUR;
     tm_fill_derived_values(tm_info);
 
     (void) seconds;
