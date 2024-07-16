@@ -52,6 +52,9 @@
 #include "coap_client.h"
 #include "rd_registration.h"
 
+#include "gameshow_buzzer.h"
+
+
 #define MAIN_QUEUE_SIZE (8)
 
 static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
@@ -59,7 +62,8 @@ static msg_t _main_msg_queue[MAIN_QUEUE_SIZE];
 char rd_register_thread_stack[THREAD_STACKSIZE_MAIN];
 
 static const shell_command_t shell_commands[] = {
-    { "coap", "CoAP client", gcoap_cli_cmd },
+    // { "coap", "CoAP client", gcoap_cli_cmd },
+    { "time", "get ISO 8601 time", get_time },
     { NULL, NULL, NULL }
 };
 
@@ -69,10 +73,11 @@ int main(void)
     int size = init_board_periph_resources();
 
 
+
     _listener.resources = &_resources[0];
-    _listener.resources_len = size;
+    _listener.resources_len = (size_t) size;
     _listener.tl_type = GCOAP_SOCKET_TYPE_UNDEF;
-    _listener.link_encoder = gcoap_encode_link;
+    _listener.link_encoder = _encode_link;
     _listener.next = NULL;
     _listener.request_matcher = NULL;
     
@@ -86,10 +91,15 @@ int main(void)
     // printf("  ep: %s\n", cord_common_get_ep());
     // printf("  lt: %is\n", (int)CONFIG_CORD_LT);
 
+
     
     thread_create(rd_register_thread_stack, sizeof(rd_register_thread_stack),
             THREAD_PRIORITY_MAIN - 1, THREAD_CREATE_STACKTEST,
             register_at_resource_directory, NULL, "rcv_thread");
+
+
+    init_buzzer();
+
 
     char line_buf[SHELL_DEFAULT_BUFSIZE];
     shell_run(shell_commands, line_buf, SHELL_DEFAULT_BUFSIZE);

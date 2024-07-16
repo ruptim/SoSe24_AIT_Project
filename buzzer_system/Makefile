@@ -1,13 +1,11 @@
 # name of your application
-APPLICATION = ait_project
+APPLICATION = buzzer_system
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
 
 # This has to be the absolute path to the RIOT base directory:
 RIOTBASE ?= $(CURDIR)/../RIOT_AIT/
-
-FEATURES_REQUIRED += picolibc # newlib
 
 #CFLAGS+="-DCONFIG_IEEE802154_DEFAULT_CHANNEL=24"
 #CFLAGS+="-DCONFIG_GNRC_IPV6_NIB_SLAAC=1"
@@ -136,5 +134,5 @@ endif
 CFLAGS += -DCONFIG_GNRC_IPV6_NIB_SLAAC=1
 CFLAGS += -DCONFIG_GNRC_IPV6_NIB_6LBR=1
 CFLAGS += -DREUSE_TAP=1
-# CFLAGS += -DCONFIG_GCOAP_OBS_VALUE_WIDTH=1
-
+CFLAGS += -DBOARD_FEATHER=1
+# CFLAGS += "-03"

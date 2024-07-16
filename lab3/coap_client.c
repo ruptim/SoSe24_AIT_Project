@@ -29,6 +29,7 @@
 
 
 #include "coap_client.h"
+#include "coap_server.h"
 
 
 #include "od.h"
@@ -52,7 +53,14 @@ char _last_req_uri[CONFIG_URI_MAX];
 
 uint16_t req_count = 0;
 
+/* whether this node is currently observing a resource as a client */
+static bool observing = false;
 
+/* the token used for observing a remote resource */
+static uint8_t obs_req_token[GCOAP_TOKENLEN_MAX];
+
+/* actual length of above token */
+static size_t obs_req_tkl = 0;
 
 
 /*
@@ -220,8 +228,8 @@ int gcoap_cli_cmd(int argc, char **argv)
     uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
     coap_pkt_t pdu;
     size_t len;
-    // unsigned observe = false;
-    // uint32_t obs_value = COAP_OBS_REGISTER;
+    unsigned observe = false;
+    uint32_t obs_value = COAP_OBS_REGISTER;
     sock_udp_ep_t remote;
 
     if (argc == 1) {
@@ -277,11 +285,33 @@ int gcoap_cli_cmd(int argc, char **argv)
     }
     if (code_pos == -1) {
         goto help;
-    }
+    } 
 
     /* parse options */
     int apos = 2;       /* position of address argument */
 
+    /* For GET requests additional switches allow for registering and
+     * deregistering an observe. This example only supports one observe. */
+    if (code_pos == COAP_METHOD_GET) {
+        if (argc > apos) {
+            if (strcmp(argv[apos], "-o") == 0) {
+                if (observing) {
+                    puts("Only one observe supported");
+                    return 1;
+                }
+                observe = true;
+                apos++;
+            } else if (strcmp(argv[apos], "-d") == 0) {
+                if (!observing) {
+                    puts("Not observing");
+                    return 1;
+                }
+                observe = true;
+                apos++;
+                obs_value = COAP_OBS_DEREGISTER;
+            }
+        }
+    }
 
 
     /* ping must be confirmable */
@@ -297,7 +327,25 @@ int gcoap_cli_cmd(int argc, char **argv)
             goto help;
         }
         gcoap_req_init(&pdu, buf, CONFIG_GCOAP_PDU_BUF_SIZE, code_pos, NULL);
+        
+        if (observe) {
+            uint8_t *token = coap_get_token(&pdu);
+            if (obs_value == COAP_OBS_REGISTER) {
+                obs_req_tkl = coap_get_token_len(&pdu);
+                /* backup the token of the initial observe registration */
+                memcpy(obs_req_token, token, obs_req_tkl);
+            } else {
+                /* use the token of the registration for deregistration
+                 * (manually replace the token set by gcoap_req_init) */
+                memcpy(token, obs_req_token, obs_req_tkl);
+                if (gcoap_obs_req_forget(&remote, obs_req_token, obs_req_tkl)) {
+                    printf("could not remove observe request\n");
+                    return 1;
+                }
+            }
 
+            coap_opt_add_uint(&pdu, COAP_OPT_OBSERVE, obs_value);
+        }
        
 
         if (!*_proxy_uri) {
@@ -334,7 +382,7 @@ int gcoap_cli_cmd(int argc, char **argv)
         else {
             len = coap_opt_finish(&pdu, COAP_OPT_FINISH_NONE);
         }
-
+        
         printf("gcoap_cli: sending msg ID %u, %" PRIuSIZE " bytes\n",
                 coap_get_id(&pdu), len);
         gcoap_socket_type_t tl = _get_tl(_last_req_uri);
@@ -345,11 +393,44 @@ int gcoap_cli_cmd(int argc, char **argv)
         }
         if (_send(&buf[0], len, rem, NULL, tl) <= 0) {
             puts("gcoap_cli: msg send failed");
+        }else {
+            if (observe) {
+                /* on successful observe request, store that this node is
+                 * observing / not observing anymore */
+                observing = obs_value == COAP_OBS_REGISTER;
+            }
+            /* send Observe notification */
+            notify_observers();
         }
 
         return 0;
     }
 help:
     return _print_usage(argv);
+}
+
+
+
+void send_data(const char* uri_base, const char* path, const void* payload, size_t payload_len,
+                    gcoap_resp_handler_t resp_handler, void* context){
+    uint8_t buf[CONFIG_GCOAP_PDU_BUF_SIZE];
+    coap_pkt_t pdu;    
+    size_t len;
+
+    char uri_buf[128];
+ 
+    sock_udp_ep_t remote;
+    
+    _uristr2remote(uri_base,&remote,NULL, &uri_buf[0], sizeof(uri_buf));
+    
+  
+    gcoap_req_init(&pdu, buf, CONFIG_GCOAP_PDU_BUF_SIZE, COAP_METHOD_PUT, path);
+    coap_opt_add_format(&pdu, COAP_FORMAT_TEXT);
+    len = coap_opt_finish(&pdu, COAP_OPT_FINISH_PAYLOAD);
+
+    len += coap_payload_put_bytes(&pdu,payload, payload_len);
+
+    gcoap_req_send(buf,len,&remote,resp_handler,context,0);
+
 }
 
