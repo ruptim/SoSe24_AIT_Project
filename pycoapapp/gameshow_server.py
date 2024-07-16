@@ -38,9 +38,10 @@ import zmq
 logging.basicConfig(level=logging.INFO)
 # logging.getLogger("coap-server").setLevel(logging.DEBUG)
 
+UI_IP = "192.168.2.189"
 
-
-UI_BACKEND_SUB_ADDR = "tcp://localhost:5556"
+UI_BACKEND_SUB_ADDR = f"tcp://{UI_IP}:5556"
+# UI_BACKEND_SUB_ADDR = "tcp://localhost:5558"
 BUZZER_BACKEND_PUB_ADDR = "tcp://*:5555"
 MULTICAST_URI_BASE = "coap://[ff02::2%lowpan0]"
 HEARTBEAT_INTERVAL_S = 4
@@ -110,6 +111,7 @@ def backend_message_receiver():
         topic_and_content =  re.findall(r'([^,]+)',msg.decode('ascii'))
         if(topic_and_content[0] == 'reset'):
             print("Reset buzzers")
+            
             asyncio.run(reset_buzzers())
 
         elif(topic_and_content[0] == 'pairing'):
@@ -318,12 +320,14 @@ async def reset_buzzers():
     """
         Send a reset message to all registered buzzers.
     """
+    
     async with  device_status_map_mutex:
         for (key,device) in device_status_map.items():
             async with device['mutex']:
                 device['timestamp'] = None           
                 device['locked'] = "False" 
 
+    ui_backend_sender.send_buzzer_info()
     await send_data_multicast("buzzer/reset_buzzer","")
 
 
@@ -375,6 +379,7 @@ async def main():
 
    
     asyncio.create_task(heartbeat_monitor_routine())
+    ui_backend_sender.send_buzzer_info()
     
     # Run forever
     await asyncio.get_running_loop().create_future()
@@ -402,8 +407,13 @@ zu Buzzer-Backend:
     - remove buzzer:       "remove, id"
 '''
 
+import sys
 
 if __name__ in {"__main__", "__mp_main__"}:
+    if len(sys.argv) > 1:
+        UI_BACKEND_SUB_ADDR = "tcp://localhost:5556"
+        print("Listening on localhost")
+    
     t1= Thread(target=backend_message_receiver)
     t1.start()
 
