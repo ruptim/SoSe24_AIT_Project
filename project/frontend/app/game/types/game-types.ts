@@ -4,6 +4,7 @@ export type BuzzerType = {
   isPressed: boolean;
   isLocked: boolean;
   delay: number | null;
+  delayLocal: number | null;
 };
 
 export type QuestionOption = {

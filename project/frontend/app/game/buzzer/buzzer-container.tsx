@@ -30,6 +30,7 @@ export function BuzzerContainer({
                 buzzerName={buzzer.buzzerName}
                 buzzerRank={index + 1}
                 delay={buzzer.delay}
+                delayLocal={buzzer.delayLocal}
                 isLocked={buzzer.isLocked}
                 isPressed={buzzer.isPressed}
               />

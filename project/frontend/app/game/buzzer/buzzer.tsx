@@ -9,6 +9,7 @@ type BuzzerParams = {
   isPressed: boolean;
   isLocked: boolean;
   delay: number | null;
+  delayLocal: number | null;
 };
 
 export function Buzzer({
@@ -17,6 +18,7 @@ export function Buzzer({
   isLocked,
   isPressed,
   delay,
+  delayLocal
 }: BuzzerParams) {
   return (
     <Card className="h-full">
@@ -28,7 +30,10 @@ export function Buzzer({
           {buzzerRank ? `#${buzzerRank}` : ""}
         </small>
         <small className="text-default-500">
-          {delay?.toFixed(6)} {delay ? "s" : ""}
+          {delayLocal?.toFixed(3)} {delayLocal != null ? "s" : ""}
+        </small>
+        <small className="text-default-500">
+          {delay ? "Total: " : ""} {delay?.toFixed(3)} {delay ? "s" : ""}
         </small>
       </CardHeader>
       <CardBody>

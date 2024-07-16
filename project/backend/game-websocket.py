@@ -115,18 +115,21 @@ def mapBuzzers(buzzer_list):
             "isPressed": obj["timestamp"] is not None,  # Set to True if timestamp is provided
             "isLocked": False,
             "delay": None,
-            "delay_local": None
+            "delayLocal": None
         }
 
         if obj["timestamp"] is not None and current_timestamp is not None:
             timestamp = datetime.strptime(obj["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
             delay = timestamp - current_timestamp
-            delay_local = timestamp - smallest_timestamp
             transformed_obj["delay"] = delay.total_seconds()  # Calculating delay
-            transformed_obj["delay_local"] = delay_local.total_seconds()
+
+            if smallest_timestamp is not None:
+                delay_local = timestamp - smallest_timestamp
+                transformed_obj["delayLocal"] = delay_local.total_seconds()
+
         else:
             transformed_obj["delay"] = None
-            transformed_obj["delay_local"] = None
+            transformed_obj["delayLocal"] = None
 
         result.append(transformed_obj)
 
@@ -136,6 +139,9 @@ def calc_smallest_timestamp(objects):
 
     # Filter objects that have 'timestamp' attribute
     objects_with_timestamp = [obj for obj in objects if obj.get('timestamp')]
+
+    if len(objects_with_timestamp) == 0:
+        return None
 
     # Initialize the smallest timestamp as the timestamp of the first object
     smallest = datetime.strptime(objects_with_timestamp[0]["timestamp"], "%Y-%m-%dT%H:%M:%S.%f")
