@@ -15,7 +15,8 @@
 
 #define MAX_PUT_PAYLOAD_LEN 64
 
-extern const char uri_base[128];
+extern char sntp_server[128];
+extern char uri_base[128];
 extern char buzzer_id[MAX_BUZZER_ID_LEN];
 extern bool buzzer_id_received;
 
@@ -34,6 +35,7 @@ void _heartbeat_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
 
 void send_heartbeat(void);
 
+int get_rd_address(void);
 
 void *heartbeat_routine(void *args);
 

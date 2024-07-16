@@ -5,17 +5,52 @@
 #include "ztimer.h"
 #include "mutex.h"
 
+#include "net/gnrc.h"
+#include "net/ipv6.h"
+#include "net/gnrc/ipv6/nib.h"
+
 #define ENABLE_DEBUG 1
 #include "debug.h"
  
 char buzzer_heartbeat_thread_stack[THREAD_STACKSIZE_DEFAULT];
 
-const char uri_base[128] = "coap://[2001:67c:254:b0b2:affe:4000:0:1]:9993";
+
+// const char uri_base[128] = "coap://[fe80::d07c:fc5d:2474:4dba]:9993";
+// char uri_base[128] = "coap://[2001:67c:254:b0b2:affe:4000:0:1]:9993";
+char uri_base[128] = "";
+char sntp_server[128];
 char buzzer_id[MAX_BUZZER_ID_LEN];
 bool buzzer_id_received = false;
 
 bool hb_timeout = false;
 bool connection_lost = false;
+
+int get_rd_address(void){
+
+    gnrc_ipv6_nib_init();
+
+    gnrc_ipv6_nib_abr_t entry;
+    void *state = NULL;
+    (void) state;
+
+    while (gnrc_ipv6_nib_abr_iter(&state, &entry)) {
+        break;
+    }
+
+    char rd_address[IPV6_ADDR_MAX_STR_LEN+3] = "";
+    char addr_str[IPV6_ADDR_MAX_STR_LEN];
+
+    ipv6_addr_to_str(addr_str, &entry.addr, sizeof(addr_str));
+    snprintf(rd_address,IPV6_ADDR_MAX_STR_LEN+3,"[%s]",addr_str);
+
+    snprintf(uri_base,sizeof(uri_base),"coap://[%s]:9993",addr_str);
+    snprintf(sntp_server,sizeof(sntp_server),"[%s]:123",addr_str);
+
+    DEBUG("URI BASE: %s\n",uri_base);
+    return 0;
+    
+}
+
 
 
 void set_connection_lost(bool status){
@@ -93,20 +128,22 @@ void _data_send_resp_handler(const gcoap_request_memo_t *memo, coap_pkt_t *pdu,
 {
     (void)pdu;
     (void)remote;
+    (void)memo;
+
 
     /* response timeout or error in response */
-    if (memo->state == GCOAP_MEMO_TIMEOUT || memo->state != GCOAP_MEMO_RESP)
-    {
-        kernel_pid_t *main_thread_pid = (kernel_pid_t *)memo->context;
-        msg_t msg;
-        msg.content.value = EVENT_NOT_CONNECTED;
-        set_connection_lost(true);
+    // if (memo->state == GCOAP_MEMO_TIMEOUT || memo->state != GCOAP_MEMO_RESP)
+    // {
+    //     kernel_pid_t *main_thread_pid = (kernel_pid_t *)memo->context;
+    //     msg_t msg;
+    //     msg.content.value = EVENT_NOT_CONNECTED;
+    //     set_connection_lost(true);
 
-        msg_send(&msg, *main_thread_pid);
+    //     msg_send(&msg, *main_thread_pid);
 
-        DEBUG("CONNECTION LOST\n");
-        return;
-    }
+    //     DEBUG("MSG TCONNECTION LOST\n");
+    //     return;
+    // }
 
 }
 

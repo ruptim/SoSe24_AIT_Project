@@ -72,6 +72,8 @@ char buzzer_pairing_blink_thread_stack[THREAD_STACKSIZE_DEFAULT];
 
 
 
+
+
 #define ENABLE_DEBUG 1
 #include "debug.h"
 
@@ -268,6 +270,7 @@ void *pairing_mode_routine(void *args)
     buzzer_pairing_mode = true;
 
     kernel_pid_t own_pid = thread_getpid();
+
 
     thread_create(buzzer_pairing_blink_thread_stack, sizeof(buzzer_pairing_blink_thread_stack),
                   THREAD_PRIORITY_MAIN - 3, THREAD_CREATE_STACKTEST,
@@ -475,11 +478,14 @@ void init_buzzer_resources(kernel_pid_t *main_thread_pid)
 int init_buzzer(kernel_pid_t *main_thread_pid)
 {
 
-    char *server_ip = "[2001:67c:254:b0b2:affe:4000:0:1]:123";
+    // char *server_ip = sntp_server;
     // char server_buf[128];
+
+    get_rd_address();
+
     sock_udp_ep_t server;
 
-    sock_udp_name2ep(&server, server_ip);
+    sock_udp_name2ep(&server, sntp_server);
     int attempts = 0;
     int sntp_conn = -1;
     while ((attempts < MAX_SNTP_ATTEMPS) && (sntp_conn != 0))
