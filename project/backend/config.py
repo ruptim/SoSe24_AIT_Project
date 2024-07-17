@@ -1,4 +1,4 @@
-hostname = '0.0.0.0'
+hostname = 'localhost'
 port = 5001
 events = {
     "connect": "connect",

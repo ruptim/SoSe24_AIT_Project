@@ -33,7 +33,7 @@ export function Buzzer({
           {delayLocal?.toFixed(3)} {delayLocal != null ? "s" : ""}
         </small>
         <small className="text-default-500">
-          {delay ? "Total: " : ""} {delay?.toFixed(3)} {delay ? "s" : ""}
+          {delay ? "Total: " : ""} {delay?.toFixed(4)} {delay ? "s" : ""}
         </small>
       </CardHeader>
       <CardBody>
