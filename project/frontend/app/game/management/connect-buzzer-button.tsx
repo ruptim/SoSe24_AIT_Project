@@ -78,6 +78,7 @@ export function ConnectBuzzerButton({
                             buzzerName={buzzer.buzzerName}
                             buzzerRank={null}
                             delay={null}
+                            delayLocal={null}
                             isLocked={buzzer.isLocked}
                             isPressed={buzzer.isPressed}
                           />
